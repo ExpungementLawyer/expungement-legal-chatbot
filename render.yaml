@@ -10,9 +10,9 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
-      - key: OPENCLAW_GATEWAY_TOKEN
+      - key: ANTHROPIC_API_KEY
         sync: false
-      - key: OPENCLAW_GATEWAY_URL
+      - key: ANTHROPIC_MODEL
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false

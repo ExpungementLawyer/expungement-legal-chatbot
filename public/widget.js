@@ -10,7 +10,15 @@
 
     // ─── Config ────────────────────────────────────────────────────────────
     const SCRIPT = document.currentScript;
-    const API_BASE = SCRIPT?.getAttribute('data-api') || window.location.origin;
+    const SCRIPT_SRC_ORIGIN = (() => {
+        try {
+            if (!SCRIPT || !SCRIPT.src) return '';
+            return new URL(SCRIPT.src, window.location.href).origin;
+        } catch (_) {
+            return '';
+        }
+    })();
+    const API_BASE = SCRIPT?.getAttribute('data-api') || SCRIPT_SRC_ORIGIN || window.location.origin;
     const SESSION_KEY = 'el_chatbot_session';
 
     // ─── Session ───────────────────────────────────────────────────────────
@@ -461,7 +469,17 @@
 
                     try {
                         const parsed = JSON.parse(data);
-                        const delta = parsed.choices?.[0]?.delta?.content;
+
+                        let delta = '';
+                        // OpenAI / OpenClaw format
+                        if (parsed.choices?.[0]?.delta?.content) {
+                            delta = parsed.choices[0].delta.content;
+                        }
+                        // Anthropic format
+                        else if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                            delta = parsed.delta.text;
+                        }
+
                         if (delta) {
                             fullText += delta;
                             msgEl.innerHTML = formatMessage(fullText);

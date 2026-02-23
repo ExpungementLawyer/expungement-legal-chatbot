@@ -7,6 +7,7 @@ const fs = require('fs');
 const { evaluateEligibility, buildEligibilityContext, DISCLAIMER } = require('./eligibility-engine');
 const { createSession, getCurrentStep, processInput, getResultQuickReplies } = require('./conversation-flow');
 const { recordLead, recordEvent, ensureHeaders } = require('./sheets-api');
+const { streamChat } = require('./aiClient');
 
 const app = express();
 
@@ -14,14 +15,13 @@ const app = express();
 // Config
 // ═══════════════════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 3001;
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
-const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3001')
     .split(',')
     .map((o) => o.trim());
 
-if (!GATEWAY_TOKEN) {
-    console.error('❌  OPENCLAW_GATEWAY_TOKEN not set. Check .env file.');
+if (!ANTHROPIC_API_KEY) {
+    console.error('❌  ANTHROPIC_API_KEY not set. Check .env file.');
     process.exit(1);
 }
 
@@ -297,52 +297,27 @@ app.post('/api/chat', rateLimiter, async (req, res) => {
     }
 
     try {
-        const payload = {
-            model: 'sonnet',
-            stream: true,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT + extraContext },
-                { role: 'user', content: clean },
-            ],
-            // Define API tools the LLM can use here
-            tools: [
-                {
-                    type: "function",
-                    function: {
-                        name: "check_county_docket",
-                        description: "Queries the county court API to check the public docket status for a specific case.",
-                        parameters: {
-                            type: "object",
-                            properties: {
-                                case_number: { type: "string", description: "The court case number (e.g., CR-2023-1234)" },
-                                county: { type: "string", description: "The Texas county name (e.g., Travis, Harris)" }
-                            },
-                            required: ["case_number", "county"]
-                        }
-                    }
+        const tools = [
+            {
+                name: "check_county_docket",
+                description: "Queries the county court API to check the public docket status for a specific case.",
+                input_schema: {
+                    type: "object",
+                    properties: {
+                        case_number: { type: "string", description: "The court case number (e.g., CR-2023-1234)" },
+                        county: { type: "string", description: "The Texas county name (e.g., Travis, Harris)" }
+                    },
+                    required: ["case_number", "county"]
                 }
-            ]
-        };
+            }
+        ];
 
-        if (sessionId) {
-            payload.user = `web-visitor:${sessionId}`;
-        }
-
-        const response = await fetch(`${GATEWAY_URL}/v1/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${GATEWAY_TOKEN}`,
-                'x-openclaw-agent-id': 'chatbot',
-            },
-            body: JSON.stringify(payload),
+        const response = await streamChat({
+            systemPrompt: SYSTEM_PROMPT + extraContext,
+            messages: [{ role: 'user', content: clean }],
+            tools: tools,
+            sessionId: sessionId
         });
-
-        if (!response.ok) {
-            const text = await response.text();
-            console.error(`OpenClaw error (${response.status}):`, text);
-            return res.status(502).json({ error: 'Failed to reach the AI service.' });
-        }
 
         // Track analytics
         if (sessionId) {
@@ -428,8 +403,7 @@ app.listen(PORT, async () => {
 ║  Expungement.Legal Chatbot                                ║
 ║  ─────────────────────────────────────────────────────── ║
 ║  Server:   http://localhost:${String(PORT).padEnd(5)}                        ║
-║  Gateway:  ${GATEWAY_URL.padEnd(44)} ║
-║  Agent:    chatbot                                        ║
+║  Agent:    Anthropic API (claude-3-5-sonnet)              ║
 ║  CORS:     ${ALLOWED_ORIGINS.join(', ').substring(0, 44).padEnd(44)} ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
