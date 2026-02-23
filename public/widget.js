@@ -9,7 +9,19 @@
     'use strict';
 
     // ─── Config ────────────────────────────────────────────────────────────
-    const SCRIPT = document.currentScript;
+    const WIDGET_VERSION = '2026-02-23.2';
+
+    function resolveScriptTag() {
+        if (document.currentScript) return document.currentScript;
+        const scripts = Array.from(document.getElementsByTagName('script')).reverse();
+        return (
+            scripts.find((s) => /widget\.js(\?|$)/.test(s.getAttribute('src') || '') && s.hasAttribute('data-api')) ||
+            scripts.find((s) => /widget\.js(\?|$)/.test(s.getAttribute('src') || '')) ||
+            null
+        );
+    }
+
+    const SCRIPT = resolveScriptTag();
     const SCRIPT_SRC_ORIGIN = (() => {
         try {
             if (!SCRIPT || !SCRIPT.src) return '';
@@ -18,8 +30,10 @@
             return '';
         }
     })();
-    const API_BASE = SCRIPT?.getAttribute('data-api') || SCRIPT_SRC_ORIGIN || window.location.origin;
+    const API_BASE = (SCRIPT?.getAttribute('data-api') || SCRIPT_SRC_ORIGIN || window.location.origin).replace(/\/$/, '');
     const SESSION_KEY = 'el_chatbot_session';
+
+    console.info(`[Expungement Widget ${WIDGET_VERSION}] API base: ${API_BASE}`);
 
     // ─── Session ───────────────────────────────────────────────────────────
     function getSessionId() {
