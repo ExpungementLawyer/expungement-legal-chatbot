@@ -57,7 +57,7 @@
         const link = document.createElement('link');
         link.id = 'el-chatbot-css';
         link.rel = 'stylesheet';
-        link.href = API_BASE + '/widget.css';
+        link.href = `${API_BASE}/widget.css?v=${encodeURIComponent(WIDGET_VERSION)}`;
         document.head.appendChild(link);
     }
 
