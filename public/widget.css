@@ -1,231 +1,266 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Expungement.Legal — Chatbot Widget Styles
-   Premium dark glassmorphism theme
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ==========================================================================
+   Expungement.Legal - Chatbot Widget Styles
+   Intentional legal-tech theme: clean, calm, high-contrast
+   ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --el-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --el-primary: #6366f1;
-  --el-primary-light: #818cf8;
-  --el-primary-dark: #4f46e5;
-  --el-accent: #a78bfa;
-  --el-success: #34d399;
-  --el-warning: #fbbf24;
-  --el-error: #f87171;
-  --el-bg-dark: #0f0f14;
-  --el-bg-card: rgba(22, 22, 30, 0.92);
-  --el-bg-glass: rgba(30, 30, 42, 0.7);
-  --el-bg-input: rgba(40, 40, 55, 0.8);
-  --el-bg-message-user: linear-gradient(135deg, #6366f1, #4f46e5);
-  --el-bg-message-bot: rgba(40, 40, 55, 0.6);
-  --el-text: #f1f1f4;
-  --el-text-muted: #9ca3af;
-  --el-text-dim: #6b7280;
-  --el-border: rgba(99, 102, 241, 0.15);
-  --el-border-focus: rgba(99, 102, 241, 0.5);
-  --el-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.08);
-  --el-radius: 16px;
-  --el-radius-sm: 10px;
-  --el-radius-msg: 18px;
-  --el-transition: cubic-bezier(0.4, 0, 0.2, 1);
-  --el-widget-width: 400px;
-  --el-widget-height: 640px;
+  --el-font: 'Plus Jakarta Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+  --el-font-display: 'Fraunces', Georgia, serif;
+
+  --el-primary: #1f6feb;
+  --el-primary-dark: #1558bd;
+  --el-accent: #f59e0b;
+  --el-success: #22c55e;
+  --el-warning: #f59e0b;
+  --el-error: #ef4444;
+
+  --el-bg-shell: #060d1c;
+  --el-bg-surface: rgba(9, 16, 34, 0.97);
+  --el-bg-soft: rgba(18, 28, 52, 0.88);
+  --el-bg-softer: rgba(13, 21, 42, 0.7);
+  --el-bg-user: linear-gradient(160deg, #1f6feb 0%, #1558bd 100%);
+  --el-bg-bot: linear-gradient(160deg, rgba(17, 27, 50, 0.95), rgba(12, 22, 43, 0.92));
+
+  --el-text: #eff4ff;
+  --el-text-soft: #c3d2f5;
+  --el-text-muted: #9fb2dc;
+  --el-text-dim: #7f93bf;
+
+  --el-border: rgba(157, 183, 244, 0.2);
+  --el-border-strong: rgba(157, 183, 244, 0.36);
+  --el-glow: rgba(31, 111, 235, 0.22);
+
+  --el-radius: 18px;
+  --el-radius-sm: 12px;
+  --el-radius-pill: 999px;
+  --el-radius-msg: 16px;
+
+  --el-shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(31, 111, 235, 0.08);
+  --el-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --el-transition: 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --el-widget-width: 396px;
+  --el-widget-height: 660px;
 }
 
-/* ─── Reset ─────────────────────────────────────────────────────────────── */
-#el-chatbot-widget *,
-#el-chatbot-widget *::before,
-#el-chatbot-widget *::after {
+/* --------------------------------------------------------------------------
+   Reset
+   -------------------------------------------------------------------------- */
+#el-chatbot-widget,
+#el-chatbot-widget * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* ─── Launcher bubble ───────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Launcher
+   -------------------------------------------------------------------------- */
 #el-chatbot-launcher {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  right: 20px;
+  bottom: 20px;
   z-index: 99998;
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
+  border: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--el-primary), var(--el-primary-dark));
-  border: none;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s var(--el-transition);
-  animation: el-pulse 2s infinite;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 30% 25%, #3a84ff 0%, var(--el-primary) 48%, var(--el-primary-dark) 100%);
+  box-shadow: 0 12px 30px var(--el-glow), 0 4px 10px rgba(0, 0, 0, 0.32);
+  transition: transform var(--el-transition), box-shadow var(--el-transition), opacity var(--el-transition);
+  animation: el-launcher-breathe 3.6s ease-in-out infinite;
 }
 
 #el-chatbot-launcher:hover {
-  transform: scale(1.1);
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 16px 34px rgba(31, 111, 235, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+#el-chatbot-launcher:active {
+  transform: translateY(0) scale(0.98);
 }
 
 #el-chatbot-launcher.el-hidden {
-  transform: scale(0);
   opacity: 0;
   pointer-events: none;
+  transform: scale(0.78);
 }
 
 #el-chatbot-launcher svg {
   width: 28px;
   height: 28px;
-  fill: white;
-  transition: transform 0.3s var(--el-transition);
+  fill: #fff;
 }
 
-@keyframes el-pulse {
-
-  0%,
-  100% {
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+@keyframes el-launcher-breathe {
+  0%, 100% {
+    box-shadow: 0 12px 30px var(--el-glow), 0 4px 10px rgba(0, 0, 0, 0.32);
   }
-
   50% {
-    box-shadow: 0 8px 40px rgba(99, 102, 241, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 16px 36px rgba(31, 111, 235, 0.35), 0 6px 14px rgba(0, 0, 0, 0.34);
   }
 }
 
-/* ─── Widget container ──────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Widget shell
+   -------------------------------------------------------------------------- */
 #el-chatbot-widget {
   position: fixed;
-  bottom: 100px;
-  right: 24px;
+  right: 20px;
+  bottom: 94px;
   z-index: 99999;
-  width: var(--el-widget-width);
-  height: var(--el-widget-height);
-  max-height: calc(100vh - 130px);
-  max-width: calc(100vw - 32px);
-  font-family: var(--el-font);
-  border-radius: var(--el-radius);
-  overflow: hidden;
+  width: min(var(--el-widget-width), calc(100vw - 24px));
+  height: min(var(--el-widget-height), calc(100vh - 110px));
+  max-height: calc(100vh - 110px);
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-card);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-radius: var(--el-radius);
+  overflow: hidden;
+  color: var(--el-text);
+  font-family: var(--el-font);
+  background: linear-gradient(165deg, rgba(8, 15, 31, 0.98), rgba(4, 11, 24, 0.98));
   border: 1px solid var(--el-border);
-  box-shadow: var(--el-shadow);
+  box-shadow: var(--el-shadow-lg);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   transform-origin: bottom right;
-  transition: all 0.35s var(--el-transition);
+  transition: transform 260ms cubic-bezier(0.18, 0.85, 0.25, 1), opacity 220ms ease;
+}
+
+#el-chatbot-widget::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 260px at 115% -10%, rgba(31, 111, 235, 0.22) 0%, transparent 60%),
+    radial-gradient(340px 190px at -15% 120%, rgba(245, 158, 11, 0.16) 0%, transparent 65%);
+  z-index: 0;
+}
+
+#el-chatbot-widget > * {
+  position: relative;
+  z-index: 1;
 }
 
 #el-chatbot-widget.el-closed {
-  transform: scale(0.5);
   opacity: 0;
   pointer-events: none;
+  transform: translateY(12px) scale(0.92);
 }
 
-/* ─── Header ────────────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
 .el-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08));
+  gap: 8px;
+  padding: 14px 14px 13px;
+  background: linear-gradient(165deg, rgba(17, 30, 58, 0.95), rgba(9, 18, 38, 0.9));
   border-bottom: 1px solid var(--el-border);
-  flex-shrink: 0;
 }
 
 .el-header-info {
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .el-header-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--el-primary), var(--el-accent));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  background: linear-gradient(145deg, #2d7cff, #185fd8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .el-header-text h3 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text);
-  line-height: 1.2;
+  font-family: var(--el-font-display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.05;
+  letter-spacing: 0.1px;
+  color: #f3f7ff;
 }
 
 .el-header-text p {
-  font-size: 11px;
-  color: var(--el-success);
+  margin-top: 3px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #86f4b8;
 }
 
 .el-status-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--el-success);
-  display: inline-block;
-  animation: el-blink 2s infinite;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
+  animation: el-status-ping 1.8s infinite;
 }
 
-@keyframes el-blink {
-
-  0%,
-  100% {
-    opacity: 1;
+@keyframes el-status-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
   }
-
-  50% {
-    opacity: 0.4;
+  100% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
   }
 }
 
 .el-header-actions {
   display: flex;
-  gap: 4px;
+  align-items: center;
 }
 
 .el-header-btn {
   width: 32px;
   height: 32px;
+  border: 0;
   border-radius: 8px;
-  border: none;
-  background: transparent;
   color: var(--el-text-muted);
+  background: transparent;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+  display: grid;
+  place-items: center;
+  transition: color var(--el-transition), background var(--el-transition);
 }
 
 .el-header-btn:hover {
+  color: #f5f8ff;
   background: rgba(255, 255, 255, 0.08);
-  color: var(--el-text);
 }
 
-/* ─── Messages area ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Messages
+   -------------------------------------------------------------------------- */
 .el-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 16px 16px 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 14px 14px 10px;
   scroll-behavior: smooth;
 }
 
 .el-messages::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .el-messages::-webkit-scrollbar-track {
@@ -233,28 +268,26 @@
 }
 
 .el-messages::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.2);
-  border-radius: 2px;
+  background: rgba(120, 149, 214, 0.35);
+  border-radius: 999px;
 }
 
-/* ─── Message bubbles ───────────────────────────────────────────────────── */
 .el-msg {
-  max-width: 85%;
-  padding: 12px 16px;
+  max-width: 88%;
+  padding: 11px 13px;
   border-radius: var(--el-radius-msg);
-  font-size: 13.5px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.58;
   color: var(--el-text);
-  animation: el-msg-in 0.3s var(--el-transition);
-  word-wrap: break-word;
+  word-break: break-word;
+  animation: el-msg-in 220ms ease-out;
 }
 
 @keyframes el-msg-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -263,21 +296,23 @@
 
 .el-msg-bot {
   align-self: flex-start;
-  background: var(--el-bg-message-bot);
+  background: var(--el-bg-bot);
   border: 1px solid var(--el-border);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 6px;
 }
 
 .el-msg-user {
   align-self: flex-end;
-  background: var(--el-bg-message-user);
-  border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  color: #f7fbff;
+  background: var(--el-bg-user);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 10px 20px rgba(18, 76, 173, 0.3);
 }
 
 .el-msg-bot p,
 .el-msg-user p {
-  margin-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 .el-msg-bot p:last-child,
@@ -286,111 +321,107 @@
 }
 
 .el-msg-bot strong {
-  color: var(--el-primary-light);
-  font-weight: 600;
+  color: #9cc0ff;
+  font-weight: 700;
 }
 
 .el-msg-bot em {
-  color: var(--el-text-muted);
-  font-style: italic;
-  font-size: 12px;
+  color: var(--el-text-soft);
+  font-size: 12.5px;
 }
 
-/* ─── Typing indicator ──────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Typing
+   -------------------------------------------------------------------------- */
 .el-typing {
-  display: flex;
-  gap: 5px;
-  padding: 14px 18px;
   align-self: flex-start;
-  background: var(--el-bg-message-bot);
-  border: 1px solid var(--el-border);
+  display: flex;
+  gap: 6px;
+  padding: 12px 13px;
   border-radius: var(--el-radius-msg);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 6px;
+  border: 1px solid var(--el-border);
+  background: var(--el-bg-bot);
 }
 
 .el-typing-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--el-primary-light);
-  animation: el-bounce 1.4s infinite;
+  background: #9cc0ff;
+  animation: el-dot-bounce 1.3s infinite;
 }
 
 .el-typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.18s;
 }
 
 .el-typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 0.36s;
 }
 
-@keyframes el-bounce {
-
-  0%,
-  60%,
-  100% {
+@keyframes el-dot-bounce {
+  0%, 65%, 100% {
     transform: translateY(0);
-    opacity: 0.4;
+    opacity: 0.45;
   }
-
-  30% {
-    transform: translateY(-6px);
+  33% {
+    transform: translateY(-5px);
     opacity: 1;
   }
 }
 
-/* ─── Quick replies ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Quick replies
+   -------------------------------------------------------------------------- */
 .el-quick-replies {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 4px 16px 8px;
-  animation: el-msg-in 0.3s var(--el-transition);
+  gap: 7px;
+  padding: 2px 14px 10px;
 }
 
 .el-qr-btn {
-  padding: 8px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--el-border);
-  background: var(--el-bg-glass);
-  color: var(--el-primary-light);
-  font-size: 12.5px;
+  border: 1px solid var(--el-border-strong);
+  border-radius: var(--el-radius-pill);
+  padding: 7px 12px;
+  background: rgba(22, 34, 63, 0.9);
+  color: #c8d9ff;
   font-family: var(--el-font);
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  transition: transform var(--el-transition), background var(--el-transition), border-color var(--el-transition), color var(--el-transition);
 }
 
 .el-qr-btn:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: var(--el-primary);
   transform: translateY(-1px);
+  color: #f2f7ff;
+  background: rgba(30, 48, 85, 0.95);
+  border-color: rgba(157, 183, 244, 0.6);
 }
 
-.el-qr-btn:active {
-  transform: translateY(0);
-}
-
-/* ─── Lead capture form ─────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Lead form
+   -------------------------------------------------------------------------- */
 .el-lead-form {
-  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  animation: el-msg-in 0.3s var(--el-transition);
+  gap: 9px;
+  padding: 8px 14px 12px;
 }
 
 .el-lead-form input {
-  padding: 10px 14px;
-  border-radius: var(--el-radius-sm);
+  width: 100%;
   border: 1px solid var(--el-border);
-  background: var(--el-bg-input);
+  border-radius: 11px;
+  background: rgba(10, 18, 36, 0.95);
   color: var(--el-text);
-  font-size: 13px;
   font-family: var(--el-font);
+  font-size: 13px;
+  padding: 10px 12px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color var(--el-transition), box-shadow var(--el-transition);
 }
 
 .el-lead-form input::placeholder {
@@ -398,128 +429,127 @@
 }
 
 .el-lead-form input:focus {
-  border-color: var(--el-border-focus);
+  border-color: rgba(120, 165, 255, 0.75);
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
 }
 
 .el-lead-submit {
-  padding: 10px 16px;
-  border-radius: var(--el-radius-sm);
-  border: none;
-  background: linear-gradient(135deg, var(--el-primary), var(--el-primary-dark));
-  color: white;
-  font-size: 13px;
+  border: 0;
+  border-radius: 11px;
+  padding: 10px 14px;
   font-family: var(--el-font);
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(150deg, #2877ff, #195ecd);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform var(--el-transition), box-shadow var(--el-transition), opacity var(--el-transition);
 }
 
 .el-lead-submit:hover {
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
   transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(21, 88, 189, 0.45);
 }
 
 .el-lead-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.55;
   transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
-/* ─── Eligibility result card ───────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Result card
+   -------------------------------------------------------------------------- */
 .el-result-card {
-  margin: 4px 16px;
-  padding: 14px 16px;
-  border-radius: var(--el-radius-sm);
+  margin: 4px 14px 8px;
+  border-radius: 12px;
   border: 1px solid var(--el-border);
-  animation: el-msg-in 0.4s var(--el-transition);
+  padding: 12px;
+  background: rgba(15, 24, 48, 0.88);
 }
 
 .el-result-card.likely,
 .el-result-card.eligible {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(52, 211, 153, 0.02));
-  border-color: rgba(52, 211, 153, 0.25);
+  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(160deg, rgba(34, 197, 94, 0.12), rgba(12, 28, 40, 0.9));
 }
 
 .el-result-card.unlikely {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.08), rgba(248, 113, 113, 0.02));
-  border-color: rgba(248, 113, 113, 0.25);
+  border-color: rgba(239, 68, 68, 0.38);
+  background: linear-gradient(160deg, rgba(239, 68, 68, 0.12), rgba(34, 16, 25, 0.9));
 }
 
 .el-result-card.not_yet,
 .el-result-card.needs_review {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(251, 191, 36, 0.02));
-  border-color: rgba(251, 191, 36, 0.25);
+  border-color: rgba(245, 158, 11, 0.38);
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.13), rgba(33, 22, 10, 0.9));
 }
 
 .el-result-status {
   font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-weight: 700;
+  margin-bottom: 7px;
 }
 
-.el-result-status.likely {
-  color: var(--el-success);
+.el-result-status.likely,
+.el-result-status.eligible {
+  color: #7af1a8;
 }
 
 .el-result-status.unlikely {
-  color: var(--el-error);
+  color: #ff9f9f;
 }
 
 .el-result-status.not_yet,
 .el-result-status.needs_review {
-  color: var(--el-warning);
+  color: #ffd27f;
 }
 
-.el-result-reason {
+.el-result-reason,
+.el-result-next {
   font-size: 13px;
-  color: var(--el-text);
   line-height: 1.5;
-  margin-bottom: 8px;
+  color: var(--el-text-soft);
 }
 
 .el-result-next {
-  font-size: 12px;
-  color: var(--el-text-muted);
-  line-height: 1.5;
+  margin-top: 6px;
 }
 
 .el-result-disclaimer {
-  font-size: 11px;
-  color: var(--el-text-dim);
-  margin-top: 10px;
+  margin-top: 9px;
   padding-top: 8px;
   border-top: 1px solid var(--el-border);
-  line-height: 1.4;
+  font-size: 11.5px;
+  color: var(--el-text-dim);
+  line-height: 1.45;
   font-style: italic;
 }
 
-/* ─── Input area ────────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Input area
+   -------------------------------------------------------------------------- */
 .el-input-area {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-top: 1px solid var(--el-border);
-  background: rgba(15, 15, 20, 0.6);
-  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(6, 12, 24, 0.65), rgba(6, 12, 24, 0.96));
 }
 
 .el-input-field {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: 24px;
+  width: 100%;
   border: 1px solid var(--el-border);
-  background: var(--el-bg-input);
+  border-radius: 13px;
+  background: rgba(8, 16, 34, 0.94);
   color: var(--el-text);
-  font-size: 13.5px;
   font-family: var(--el-font);
+  font-size: 14px;
+  padding: 10px 12px;
   outline: none;
-  transition: border-color 0.2s ease;
-  resize: none;
-  max-height: 100px;
+  transition: border-color var(--el-transition), box-shadow var(--el-transition), background var(--el-transition);
 }
 
 .el-input-field::placeholder {
@@ -527,110 +557,142 @@
 }
 
 .el-input-field:focus {
-  border-color: var(--el-border-focus);
+  border-color: rgba(123, 169, 255, 0.75);
+  background: rgba(10, 20, 42, 0.97);
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.18);
 }
 
 .el-send-btn {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, var(--el-primary), var(--el-primary-dark));
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
   flex-shrink: 0;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(150deg, #2877ff, #195ecd);
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform var(--el-transition), box-shadow var(--el-transition), opacity var(--el-transition);
 }
 
 .el-send-btn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 7px 16px rgba(21, 88, 189, 0.45);
 }
 
 .el-send-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  opacity: 0.45;
   transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .el-send-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: white;
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
 }
 
-/* ─── Human handoff button ──────────────────────────────────────────────── */
 .el-human-btn {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--el-border);
+  background: rgba(9, 16, 34, 0.9);
+  color: var(--el-text-muted);
+  font-family: var(--el-font);
+  font-size: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px;
-  border-top: 1px solid var(--el-border);
-  background: transparent;
-  border-left: none;
-  border-right: none;
-  border-bottom: none;
-  color: var(--el-text-muted);
-  font-size: 12px;
-  font-family: var(--el-font);
+  padding: 7px 10px;
   cursor: pointer;
-  width: 100%;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  transition: background var(--el-transition), color var(--el-transition);
 }
 
 .el-human-btn:hover {
-  background: rgba(99, 102, 241, 0.06);
-  color: var(--el-primary-light);
+  background: rgba(17, 28, 54, 0.92);
+  color: #d8e6ff;
 }
 
-/* ─── Error / retry ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------------------
+   Error states
+   -------------------------------------------------------------------------- */
 .el-error-msg {
   align-self: center;
-  padding: 10px 16px;
-  border-radius: var(--el-radius-sm);
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  color: var(--el-error);
+  margin: 4px 0 2px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ffc2c2;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 11px;
+  padding: 9px 12px;
   font-size: 12.5px;
   text-align: center;
+  max-width: 95%;
 }
 
 .el-retry-btn {
-  margin-top: 6px;
-  padding: 6px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(248, 113, 113, 0.3);
+  margin-top: 7px;
+  border: 1px solid rgba(239, 68, 68, 0.34);
+  border-radius: var(--el-radius-pill);
   background: transparent;
-  color: var(--el-error);
-  font-size: 12px;
+  color: #ffd1d1;
   font-family: var(--el-font);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background var(--el-transition), border-color var(--el-transition), color var(--el-transition);
 }
 
 .el-retry-btn:hover {
-  background: rgba(248, 113, 113, 0.1);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.5);
 }
 
-/* ─── Responsive ────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
   #el-chatbot-widget {
-    bottom: 0;
-    right: 0;
-    width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    max-width: 100vw;
-    border-radius: 0;
+    width: min(388px, calc(100vw - 18px));
+    right: 9px;
+    bottom: 84px;
+    height: min(650px, calc(100vh - 100px));
   }
 
   #el-chatbot-launcher {
-    bottom: 16px;
-    right: 16px;
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  #el-chatbot-widget {
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  #el-chatbot-launcher {
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: 58px;
+    height: 58px;
+  }
+
+  .el-header {
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
+
+  .el-input-area {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 }
