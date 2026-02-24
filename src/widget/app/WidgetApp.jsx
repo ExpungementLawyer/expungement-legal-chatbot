@@ -76,9 +76,15 @@ export default function WidgetApp({ apiBase }) {
   const placeholder =
     pendingInputType === 'name'
       ? 'Enter your first name...'
-      : pendingInputType === 'offense'
-        ? 'Describe your charge(s)...'
-        : 'Describe your situation...';
+      : pendingInputType === 'arrest_date'
+        ? 'Arrest date (YYYY or MM/YYYY)...'
+        : pendingInputType === 'deferred_discharge_date'
+          ? 'Deferred discharge date (YYYY or MM/YYYY)...'
+          : pendingInputType === 'conviction_sentence_date'
+            ? 'Sentence completion date (YYYY or MM/YYYY)...'
+            : pendingInputType === 'offense'
+              ? 'Describe your charge(s)...'
+      : 'Describe your situation...';
 
   const trackEvent = useCallback(
     (event, data = '') => {
@@ -117,7 +123,13 @@ export default function WidgetApp({ apiBase }) {
       } else if (payload?.inputType === 'lead_form') {
         setFormMode('lead');
         setPendingInputType(null);
-      } else if (payload?.inputType === 'name' || payload?.inputType === 'offense') {
+      } else if (
+        payload?.inputType === 'name' ||
+        payload?.inputType === 'offense' ||
+        payload?.inputType === 'arrest_date' ||
+        payload?.inputType === 'deferred_discharge_date' ||
+        payload?.inputType === 'conviction_sentence_date'
+      ) {
         setFormMode(null);
         setPendingInputType(payload.inputType);
       } else {

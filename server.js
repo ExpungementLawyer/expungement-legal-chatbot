@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const { evaluateEligibility, buildEligibilityContext, DISCLAIMER } = require('./eligibility-engine');
+const { evaluateEligibility, buildEligibilityContext } = require('./eligibility-engine');
 const { createSession, getCurrentStep, processInput, getResultQuickReplies } = require('./conversation-flow');
 const { recordLead, recordEvent, ensureHeaders } = require('./sheets-api');
 const { streamChat } = require('./aiClient');
@@ -207,9 +207,6 @@ app.post('/api/flow/advance', rateLimiter, (req, res) => {
 
     const session = getOrCreateSession(sessionId);
 
-    // Auto-set state to Texas
-    session.collectedData.state = 'TX';
-
     // If contact_form input, also save as a lead early
     if (input && typeof input === 'object' && (input.email || input.phone)) {
         recordLead({
@@ -217,8 +214,8 @@ app.post('/api/flow/advance', rateLimiter, (req, res) => {
             name: session.collectedData.firstName || '',
             email: sanitizeInput(input.email || ''),
             phone: sanitizeInput(input.phone || ''),
-            state: 'TX',
-            offenseType: '',
+            state: session.collectedData.jurisdiction || '',
+            offenseType: session.collectedData.offenseLevel || '',
             eligibilityResult: 'in_progress',
         });
         recordEvent({ sessionId, event: 'contact_captured_early', data: { hasEmail: !!input.email } });
@@ -230,22 +227,22 @@ app.post('/api/flow/advance', rateLimiter, (req, res) => {
     let quickReplies = step.quickReplies;
 
     if (needsEligibility && eligibilityInput) {
-        // Force Texas
-        eligibilityInput.state = 'TX';
         eligibilityResult = evaluateEligibility(eligibilityInput);
         session.eligibilityResult = eligibilityResult;
         session.bucket = eligibilityResult.bucket;
+        session.status = eligibilityResult.status;
 
-        // Set bucket-specific quick replies
-        quickReplies = getResultQuickReplies(eligibilityResult.bucket);
+        // Set status-specific quick replies
+        quickReplies = getResultQuickReplies(eligibilityResult);
 
         recordEvent({
             sessionId,
             event: 'eligibility_check',
             data: {
-                offenseType: eligibilityInput.offenseType,
+                offenseLevel: eligibilityInput.offenseLevel,
+                outcome: eligibilityInput.caseOutcome,
                 bucket: eligibilityResult.bucket,
-                result: eligibilityResult.eligible,
+                status: eligibilityResult.status,
             },
         });
     }
@@ -368,9 +365,9 @@ app.post('/api/lead', rateLimiter, async (req, res) => {
         name: sanitizeInput(name || ''),
         email: sanitizeInput(email || ''),
         phone: sanitizeInput(phone || ''),
-        state: session?.collectedData?.state || '',
-        offenseType: session?.collectedData?.offenseType || '',
-        eligibilityResult: eligResult?.eligible || '',
+        state: session?.collectedData?.jurisdiction || '',
+        offenseType: session?.collectedData?.offenseLevel || '',
+        eligibilityResult: eligResult?.status || '',
     });
 
     // Track analytics

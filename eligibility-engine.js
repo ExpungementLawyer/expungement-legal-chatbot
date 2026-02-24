@@ -1,180 +1,562 @@
 /**
- * Eligibility Engine — Texas-specific decision tree for expungement/nondisclosure.
+ * Eligibility Engine — Deterministic Texas record-clearing logic.
  *
- * Texas has two main paths:
- *   1. Expunction (Art. 55, CCP) — complete removal for acquittals, dismissals, pardons
- *   2. Nondisclosure (Gov. Code §411.071+) — sealing for completed deferred adjudication
- *
- * Returns a bucket classification:
- *   - "eligible"      → Bucket A (close sale)
- *   - "needs_review"  → Bucket B (book consult)
- *   - "not_eligible"  → Bucket C (nurture)
+ * Output buckets:
+ *   - eligible
+ *   - needs_review
+ *   - not_eligible
  */
 
 const rules = require('./eligibility-rules.json');
 
 const DISCLAIMER =
-    'This is general information only and does not constitute legal advice. ' +
-    'Eligibility depends on the specific facts of your case under Texas law.';
+    'This automated assessment provides general information and not legal advice. Final eligibility depends on full court records and attorney review.';
 
 const TX = rules.texas;
 
-/**
- * Evaluate eligibility.
- */
-function evaluateEligibility(input) {
-    const { offenseType, yearsCompleted, pendingCharges, firstName } = input;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-    const offense = rules.offenseCategories[offenseType];
-    const name = firstName || 'there';
+function toDateFromYearMonth(value) {
+    if (!value || typeof value !== 'string') return null;
+    const match = value.match(/^(\d{4})-(\d{2})$/);
+    if (!match) return null;
 
-    // ── Pending charges → not eligible (yet) ─────────────────────────────
-    if (pendingCharges === true) {
-        return {
-            bucket: 'not_eligible',
-            eligible: 'not_yet',
-            confidence: 'high',
-            reason: `${name}, pending criminal charges need to be resolved before we can move forward with expungement or nondisclosure in Texas. Once those are handled, you may very well qualify.`,
-            nextSteps: 'We\'d love to keep your file open and follow up once your pending matters are resolved.',
-            disclaimer: DISCLAIMER,
-        };
-    }
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (year < 1950 || year > 2100 || month < 1 || month > 12) return null;
 
-    // ── Currently on probation/sentence ──────────────────────────────────
-    // If we don't know the offense severity, but they are currently on probation (0 years), they are not yet eligible.
-    const severity = input.severity || (offense ? offense.typicalSeverity : 'unknown');
+    return new Date(Date.UTC(year, month - 1, 1));
+}
 
-    if (yearsCompleted === 0 && severity !== 'arrest' && severity !== 'deferred') {
-        return {
-            bucket: 'not_eligible',
-            eligible: 'not_yet',
-            confidence: 'high',
-            reason: `${name}, because you're currently completing your sentence or probation, you aren't eligible for expungement just yet. But that doesn't mean you won't be!`,
-            nextSteps: 'We\'d like to reach out when your sentence is complete so you can get started right away. Can we keep your file open?',
-            disclaimer: DISCLAIMER,
-        };
-    }
+function addYears(date, years) {
+    if (!date) return null;
+    const next = new Date(date.getTime());
+    next.setUTCFullYear(next.getUTCFullYear() + years);
+    return next;
+}
 
-    // Unknown/custom text offense → needs human review
-    if (!offense) {
-        return {
-            bucket: 'needs_review',
-            eligible: 'needs_review',
-            confidence: 'low',
-            reason: `${name}, since your situation involves specific charges ("${offenseType}"), it requires an attorney's review to determine exact eligibility. The good news is we handle records like this in Texas all the time.`,
-            nextSteps: 'We\'ll have an attorney review your case and give you a call.',
-            disclaimer: DISCLAIMER,
-        };
-    }
+function addDays(date, days) {
+    if (!date) return null;
+    return new Date(date.getTime() + days * MS_PER_DAY);
+}
 
+function formatDate(date) {
+    if (!date) return null;
+    return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+    }).format(date);
+}
 
+function computeEligibilityDate({ anchorDate, requiredYears = 0, requiredDays = 0 }) {
+    if (!anchorDate) return null;
+    const afterYears = addYears(anchorDate, requiredYears);
+    return addDays(afterYears, requiredDays);
+}
 
-    // ── Disqualifying offense ────────────────────────────────────────────
-    const isDisqualified = TX.disqualifying.some(
-        (d) => offenseType.includes(d) || d.includes(offenseType)
-    );
+function isNowOrPast(date) {
+    if (!date) return false;
+    return date.getTime() <= Date.now();
+}
 
-    if (isDisqualified || !offense.generallyEligible) {
-        return {
-            bucket: 'needs_review',
-            eligible: 'needs_review',
-            confidence: 'medium',
-            reason: `${name}, in Texas, ${offense.label.toLowerCase()} cases can be more complex. Your situation has some details that an attorney should review — but we handle cases like this regularly, and there may be options available to you.`,
-            nextSteps: 'Our Texas attorneys can review your specific circumstances and let you know exactly what\'s possible.',
-            disclaimer: DISCLAIMER,
-        };
-    }
+function yearsUntil(date) {
+    if (!date) return null;
+    const diffMs = date.getTime() - Date.now();
+    if (diffMs <= 0) return 0;
+    return Math.max(0, Math.ceil((diffMs / (365.25 * MS_PER_DAY)) * 10) / 10);
+}
 
-    // ── Arrests / dismissals → Expunction (usually straightforward) ─────
-    if (severity === 'arrest') {
-        return {
-            bucket: 'eligible',
-            eligible: 'likely',
-            confidence: 'high',
-            reason: `Great news, ${name}! In Texas, arrests that didn't result in a conviction — including dismissed cases and acquittals — are generally eligible for expunction. This means the record can be completely removed, not just sealed.`,
-            nextSteps:
-                `Here's how we can get started:\n\n` +
-                `⚡ **Rush Processing — $2,000** — expedited timeline\n` +
-                `📋 **Standard Processing — $1,395** — 3–6 months\n\n` +
-                `Both include full attorney representation, all filings, and court appearances. Payment plans available.`,
-            disclaimer: DISCLAIMER,
-        };
-    }
-
-    // ── Deferred adjudication → Nondisclosure ────────────────────────────
-    if (severity === 'deferred' || offenseType === 'deferred_adjudication') {
-        return {
-            bucket: 'eligible',
-            eligible: 'likely',
-            confidence: 'high',
-            reason: `Great news, ${name}! If you successfully completed deferred adjudication in Texas, you're likely eligible for a Nondisclosure Order. This seals your record from public view — employers and landlords won't see it on background checks.`,
-            nextSteps:
-                `Here's how we can get started:\n\n` +
-                `⚡ **Rush Processing — $2,000** — expedited timeline\n` +
-                `📋 **Standard Processing — $1,395** — 3–6 months\n\n` +
-                `Both include full attorney representation, all filings, and court appearances. Payment plans available.`,
-            disclaimer: DISCLAIMER,
-        };
-    }
-
-    // ── Waiting period check ─────────────────────────────────────────────
-    const requiredWait = TX.waitingPeriod[severity] ?? TX.waitingPeriod.misdemeanor_classAB;
-
-    if (yearsCompleted !== undefined && yearsCompleted !== null && yearsCompleted < requiredWait) {
-        const remaining = requiredWait - yearsCompleted;
-        return {
-            bucket: 'not_eligible',
-            eligible: 'not_yet',
-            confidence: 'medium',
-            reason: `${name}, in Texas the waiting period for this type of offense is typically ${requiredWait} year(s) after completing your sentence. Based on what you've shared, you may need to wait approximately ${remaining} more year(s).`,
-            nextSteps: 'We\'d like to keep your file open and reach out when you may become eligible. That way you\'re ready to go the moment the time comes.',
-            disclaimer: DISCLAIMER,
-        };
-    }
-
-    // ── ELIGIBLE (Bucket A) ──────────────────────────────────────────────
-    let reason = `Great news, ${name}! Based on what you've shared, it looks like you may be eligible to clear your record in Texas.`;
-
-    if (yearsCompleted !== undefined && yearsCompleted >= requiredWait) {
-        reason += ` You appear to have met the required waiting period.`;
-    }
+function makeResult({
+    bucket,
+    status,
+    pathway = null,
+    confidence = 'medium',
+    reason,
+    nextSteps,
+    eligibleOnDate = null,
+}) {
+    const normalizedSteps = String(nextSteps || '')
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join('\n');
 
     return {
-        bucket: 'eligible',
-        eligible: 'likely',
-        confidence: yearsCompleted !== undefined ? 'high' : 'medium',
+        bucket,
+        status,
+        pathway,
+        eligible:
+            bucket === 'eligible' ? 'likely' : status === 'waitlist' ? 'not_yet' : bucket === 'needs_review' ? 'needs_review' : 'blocked',
+        confidence,
         reason,
-        nextSteps:
-            `Here's how we can get started:\n\n` +
-            `⚡ **Rush Processing — $2,000** — expedited timeline\n` +
-            `📋 **Standard Processing — $1,395** — 3–6 months\n\n` +
-            `Both include full attorney representation, all filings, and court appearances. Payment plans available.`,
+        nextSteps: normalizedSteps,
         disclaimer: DISCLAIMER,
+        eligibleOnDate: formatDate(eligibleOnDate),
     };
 }
 
-/**
- * Build AI context from eligibility result.
- */
+function appendConservativeAssumption(result, input) {
+    if (!input?.offenseLevelAssumed) return result;
+
+    return {
+        ...result,
+        nextSteps:
+            `${result.nextSteps}\n\n` +
+            'Conservative estimate applied: because offense level was uncertain, timeline calculations used felony-level assumptions pending document confirmation.',
+    };
+}
+
+function evaluateWaitGate({ anchorDate, requiredYears = 0, requiredDays = 0 }) {
+    if (!anchorDate) {
+        return {
+            met: false,
+            eligibleOnDate: null,
+        };
+    }
+
+    const eligibleOnDate = computeEligibilityDate({ anchorDate, requiredYears, requiredDays });
+    return {
+        met: isNowOrPast(eligibleOnDate),
+        eligibleOnDate,
+    };
+}
+
+function contradictionDetected(input) {
+    if (!input) return false;
+
+    if (input.caseOutcome === 'deferred' && input.deferredBannedCharge === true) return true;
+
+    if (input.caseOutcome !== 'deferred' && (input.deferredDischargeDate || input.deferredMisdCategory || input.interveningOffense !== null)) {
+        return true;
+    }
+
+    if (input.caseOutcome !== 'convicted' && (input.priorHistory !== null || input.convictionSentenceDate)) {
+        return true;
+    }
+
+    if (input.caseOutcome !== 'dismissed' && input.dismissedCategory && input.dismissedCategory !== 'not_sure') {
+        return true;
+    }
+
+    return false;
+}
+
+function evaluateEligibility(input) {
+    const name = input?.firstName || 'there';
+
+    if (input?.jurisdiction !== 'TX') {
+        return makeResult({
+            bucket: 'not_eligible',
+            status: 'not_texas',
+            confidence: 'high',
+            reason:
+                `${name}, this automated eligibility model is configured only for Texas record-clearing statutes. ` +
+                'Cases in other states or federal court require a different legal framework.',
+            nextSteps:
+                '1. Review out-of-state resources for your jurisdiction.\n' +
+                '2. If any part of your history occurred in Texas, request a Texas-specific legal review.',
+        });
+    }
+
+    if (input?.lifetimeBar === true) {
+        return makeResult({
+            bucket: 'not_eligible',
+            status: 'disqualified_lifetime_bar',
+            confidence: 'high',
+            reason:
+                `${name}, based on your answer, standard expunction and nondisclosure pathways appear blocked by Texas lifetime statutory bars for specific offense categories.`,
+            nextSteps:
+                '1. Request an attorney consultation for advanced remedies.\n' +
+                '2. Discuss whether pardon or post-conviction relief pathways may apply to your facts.',
+        });
+    }
+
+    if (!input?.caseOutcome || input.caseOutcome === 'unsure') {
+        return makeResult({
+            bucket: 'needs_review',
+            status: 'needs_discovery',
+            confidence: 'high',
+            reason:
+                `${name}, your case outcome is unclear, so we should not guess. Texas eligibility depends on the exact final disposition shown on your official record.`,
+            nextSteps:
+                '1. Start the $49 Record Discovery & Strategy Session.\n' +
+                '2. We pull your official DPS history and provide a verified legal pathway review.',
+        });
+    }
+
+    if (contradictionDetected(input)) {
+        return makeResult({
+            bucket: 'needs_review',
+            status: 'needs_human_review',
+            confidence: 'high',
+            reason:
+                `${name}, one or more answers conflict with typical Texas statutory outcomes. This usually means the case paperwork classification is different than expected.`,
+            nextSteps:
+                '1. Route this file to priority human legal review.\n' +
+                '2. Confirm the exact disposition from county/DPS records before filing.',
+        });
+    }
+
+    // Criminal episode rule: one conviction in the same arrest can bar expunction for related dismissed counts.
+    if (
+        input?.multipleCharges === true &&
+        input?.anyConvictionFromArrest === true &&
+        ['dismissed', 'unfiled', 'acquitted'].includes(input?.caseOutcome)
+    ) {
+        return makeResult({
+            bucket: 'needs_review',
+            status: 'needs_human_review',
+            confidence: 'high',
+            reason:
+                `${name}, because multiple charges were tied to one arrest and at least one ended in conviction/jail, the criminal-episode rule may block direct expunction for related counts.`,
+            nextSteps:
+                '1. Attorney review is required to isolate any remaining sealing pathway.\n' +
+                '2. We can map charge-by-charge options from your complete docket history.',
+        });
+    }
+
+    if (input.caseOutcome === 'acquitted') {
+        return appendConservativeAssumption(
+            makeResult({
+                bucket: 'eligible',
+                status: 'eligible_expunction',
+                pathway: 'expunction',
+                confidence: 'high',
+                reason:
+                    `Strong result, ${name}. A not-guilty acquittal is generally on the expunction pathway in Texas, meaning record destruction rather than simple sealing.`,
+                nextSteps:
+                    '1. Begin filing now to lock in removal from public-record channels.\n' +
+                    '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
+            }),
+            input
+        );
+    }
+
+    if (input.caseOutcome === 'unfiled') {
+        const arrestDate = toDateFromYearMonth(input.arrestDate);
+        if (!arrestDate) {
+            return makeResult({
+                bucket: 'needs_review',
+                status: 'needs_human_review',
+                confidence: 'medium',
+                reason:
+                    `${name}, we need the arrest date to calculate statute-based waiting periods for unfiled arrests.`,
+                nextSteps: '1. Confirm the arrest month/year from your records.\n2. Re-run this check or request legal review.',
+            });
+        }
+
+        const level = input.offenseLevel || 'felony';
+        const waitConfig = TX.waitPeriods.unfiled;
+
+        const gate =
+            level === 'class_c'
+                ? evaluateWaitGate({ anchorDate: arrestDate, requiredDays: waitConfig.classCDays })
+                : level === 'misdemeanor'
+                    ? evaluateWaitGate({ anchorDate: arrestDate, requiredYears: waitConfig.misdemeanorYears })
+                    : evaluateWaitGate({ anchorDate: arrestDate, requiredYears: waitConfig.felonyYears });
+
+        if (gate.met) {
+            return appendConservativeAssumption(
+                makeResult({
+                    bucket: 'eligible',
+                    status: 'eligible_expunction',
+                    pathway: 'expunction',
+                    confidence: 'high',
+                    reason:
+                        `${name}, your unfiled-arrest timeline appears to satisfy Texas wait-period rules for expunction filing.`,
+                    nextSteps:
+                        '1. We can file your expunction petition now.\n' +
+                        '2. Select Standard ($1,395) or Rush ($2,000) processing.',
+                    eligibleOnDate: gate.eligibleOnDate,
+                }),
+                input
+            );
+        }
+
+        const etaYears = yearsUntil(gate.eligibleOnDate);
+        return appendConservativeAssumption(
+            makeResult({
+                bucket: 'not_eligible',
+                status: 'waitlist',
+                pathway: 'expunction',
+                confidence: 'high',
+                reason:
+                    `${name}, you are on the expunction path, but the statutory wait period has not expired yet.`,
+                nextSteps:
+                    `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
+                    `2. Join the priority waitlist and we will notify you when filing opens (about ${etaYears} year(s) remaining).`,
+                eligibleOnDate: gate.eligibleOnDate,
+            }),
+            input
+        );
+    }
+
+    if (input.caseOutcome === 'dismissed') {
+        const arrestDate = toDateFromYearMonth(input.arrestDate);
+        if (!arrestDate) {
+            return makeResult({
+                bucket: 'needs_review',
+                status: 'needs_human_review',
+                confidence: 'medium',
+                reason:
+                    `${name}, we need the arrest date to calculate statute-of-limitation timing for dismissed charges.`,
+                nextSteps: '1. Confirm arrest month/year from your records.\n2. Re-run this check or request legal review.',
+            });
+        }
+
+        const level = input.offenseLevel || 'felony';
+        const dismissal = TX.waitPeriods.dismissed;
+
+        let requiredYears = dismissal.misdemeanorYears;
+        if (level === 'felony') {
+            if (input.dismissedCategory === 'fraud_financial') requiredYears = dismissal.felonyFraudYears;
+            else if (input.dismissedCategory === 'deed_theft') requiredYears = dismissal.felonyDeedTheftYears;
+            else requiredYears = dismissal.felonyStandardYears;
+        }
+
+        const gate = evaluateWaitGate({ anchorDate: arrestDate, requiredYears });
+
+        if (gate.met) {
+            return appendConservativeAssumption(
+                makeResult({
+                    bucket: 'eligible',
+                    status: 'eligible_expunction',
+                    pathway: 'expunction',
+                    confidence: 'medium',
+                    reason:
+                        `${name}, your dismissed-case timeline appears to satisfy current Texas statute timing for expunction filing.`,
+                    nextSteps:
+                        '1. Begin your expunction petition now.\n' +
+                        '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
+                    eligibleOnDate: gate.eligibleOnDate,
+                }),
+                input
+            );
+        }
+
+        const etaYears = yearsUntil(gate.eligibleOnDate);
+        return appendConservativeAssumption(
+            makeResult({
+                bucket: 'not_eligible',
+                status: 'waitlist',
+                pathway: 'expunction',
+                confidence: 'medium',
+                reason:
+                    `${name}, this dismissed charge appears to remain inside the current waiting window under Texas statute timing rules.`,
+                nextSteps:
+                    `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
+                    `2. Join priority waitlist for automatic filing-window alerts (about ${etaYears} year(s) remaining).`,
+                eligibleOnDate: gate.eligibleOnDate,
+            }),
+            input
+        );
+    }
+
+    if (input.caseOutcome === 'deferred') {
+        if (input.deferredBannedCharge === true) {
+            return makeResult({
+                bucket: 'needs_review',
+                status: 'needs_human_review',
+                confidence: 'high',
+                reason:
+                    `${name}, the offense category selected is typically restricted for deferred-adjudication sealing pathways. We should verify the exact disposition before moving forward.`,
+                nextSteps:
+                    '1. Route to priority legal review.\n' +
+                    '2. Confirm charge coding and final order details from official records.',
+            });
+        }
+
+        if (input.interveningOffense === true) {
+            return makeResult({
+                bucket: 'not_eligible',
+                status: 'disqualified_intervening_offense',
+                pathway: 'nondisclosure',
+                confidence: 'high',
+                reason:
+                    `${name}, Texas clean-period rules can block nondisclosure when new arrests/convictions occur during the waiting window.`,
+                nextSteps:
+                    '1. Request attorney analysis for any remaining legal options.\n' +
+                    '2. We can review whether alternate post-conviction remedies may apply.',
+            });
+        }
+
+        const dischargeDate = toDateFromYearMonth(input.deferredDischargeDate);
+        if (!dischargeDate) {
+            return makeResult({
+                bucket: 'needs_review',
+                status: 'needs_human_review',
+                confidence: 'medium',
+                reason:
+                    `${name}, we need your deferred discharge date to calculate nondisclosure waiting periods.`,
+                nextSteps:
+                    '1. Confirm discharge month/year from court records.\n' +
+                    '2. Re-run this check or request legal review.',
+            });
+        }
+
+        const level = input.offenseLevel || 'felony';
+        let requiredYears = TX.waitPeriods.deferred.felonyYears;
+
+        if (level === 'misdemeanor' || level === 'class_c') {
+            requiredYears =
+                input.deferredMisdCategory === 'minor_nonviolent'
+                    ? TX.waitPeriods.deferred.misdemeanorMinorNonviolentYears
+                    : TX.waitPeriods.deferred.misdemeanorYears;
+        }
+
+        const gate = evaluateWaitGate({ anchorDate: dischargeDate, requiredYears });
+
+        if (gate.met) {
+            return appendConservativeAssumption(
+                makeResult({
+                    bucket: 'eligible',
+                    status: 'eligible_nondisclosure',
+                    pathway: 'nondisclosure',
+                    confidence: 'high',
+                    reason:
+                        `${name}, your deferred-adjudication timeline appears to satisfy Texas nondisclosure waiting requirements.`,
+                    nextSteps:
+                        '1. Start your nondisclosure filing now.\n' +
+                        '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
+                    eligibleOnDate: gate.eligibleOnDate,
+                }),
+                input
+            );
+        }
+
+        const etaYears = yearsUntil(gate.eligibleOnDate);
+        return appendConservativeAssumption(
+            makeResult({
+                bucket: 'not_eligible',
+                status: 'waitlist',
+                pathway: 'nondisclosure',
+                confidence: 'high',
+                reason:
+                    `${name}, you may qualify for nondisclosure, but the required post-discharge waiting window has not fully matured.`,
+                nextSteps:
+                    `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
+                    `2. Join priority waitlist for automatic alerting (about ${etaYears} year(s) remaining).`,
+                eligibleOnDate: gate.eligibleOnDate,
+            }),
+            input
+        );
+    }
+
+    if (input.caseOutcome === 'convicted') {
+        if (input.offenseLevel === 'felony') {
+            return makeResult({
+                bucket: 'not_eligible',
+                status: 'disqualified_felony_conviction',
+                confidence: 'high',
+                reason:
+                    `${name}, Texas generally does not allow nondisclosure for final felony convictions under standard pathways.`,
+                nextSteps:
+                    '1. Request attorney consultation for advanced remedies (pardon/habeas analysis).\n' +
+                    '2. Review whether any separate non-felony records remain clearable.',
+            });
+        }
+
+        if (input.priorHistory === true) {
+            return makeResult({
+                bucket: 'not_eligible',
+                status: 'disqualified_repeat_history',
+                pathway: 'nondisclosure',
+                confidence: 'high',
+                reason:
+                    `${name}, first-time misdemeanor conviction sealing in Texas is narrow. Multiple prior convictions/probations can block the standard pathway.`,
+                nextSteps:
+                    '1. Request legal review for any alternative pathways.\n' +
+                    '2. We can analyze whether any charge-specific relief remains available.',
+            });
+        }
+
+        const sentenceDate = toDateFromYearMonth(input.convictionSentenceDate);
+        if (!sentenceDate) {
+            return makeResult({
+                bucket: 'needs_review',
+                status: 'needs_human_review',
+                confidence: 'medium',
+                reason:
+                    `${name}, we need sentence completion date details to calculate the misdemeanor conviction waiting period.`,
+                nextSteps:
+                    '1. Confirm completion month/year.\n2. Re-run this check or request legal review.',
+            });
+        }
+
+        const requiredYears = TX.waitPeriods.convictedMisdemeanorYears;
+        const gate = evaluateWaitGate({ anchorDate: sentenceDate, requiredYears });
+
+        if (gate.met) {
+            return appendConservativeAssumption(
+                makeResult({
+                    bucket: 'eligible',
+                    status: 'eligible_nondisclosure',
+                    pathway: 'nondisclosure',
+                    confidence: 'medium',
+                    reason:
+                        `${name}, your first-time misdemeanor conviction timeline appears to satisfy the standard Texas nondisclosure waiting period.`,
+                    nextSteps:
+                        '1. Start your nondisclosure filing now.\n' +
+                        '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
+                    eligibleOnDate: gate.eligibleOnDate,
+                }),
+                input
+            );
+        }
+
+        const etaYears = yearsUntil(gate.eligibleOnDate);
+        return appendConservativeAssumption(
+            makeResult({
+                bucket: 'not_eligible',
+                status: 'waitlist',
+                pathway: 'nondisclosure',
+                confidence: 'medium',
+                reason:
+                    `${name}, you appear to be on a nondisclosure path, but the post-sentence waiting period has not fully elapsed.`,
+                nextSteps:
+                    `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
+                    `2. Join priority waitlist for a filing-window alert (about ${etaYears} year(s) remaining).`,
+                eligibleOnDate: gate.eligibleOnDate,
+            }),
+            input
+        );
+    }
+
+    return makeResult({
+        bucket: 'needs_review',
+        status: 'needs_human_review',
+        confidence: 'medium',
+        reason:
+            `${name}, this case pattern needs direct legal review to avoid a misclassification.`,
+        nextSteps: '1. Request priority callback.\n2. We will verify your records and map the correct path.',
+    });
+}
+
 function buildEligibilityContext(result) {
     return [
         '## Eligibility Assessment (Texas)',
         `**Bucket**: ${result.bucket}`,
+        `**Status**: ${result.status}`,
+        result.pathway ? `**Pathway**: ${result.pathway}` : null,
+        result.eligibleOnDate ? `**Estimated Eligibility Date**: ${result.eligibleOnDate}` : null,
         `**Assessment**: ${result.reason}`,
         `**Next Steps**: ${result.nextSteps}`,
         `\n⚠️ ${result.disclaimer}`,
-    ].join('\n');
+    ]
+        .filter(Boolean)
+        .join('\n');
 }
 
 function getOffenseCategories() {
-    return Object.entries(rules.offenseCategories).map(([key, val]) => ({
+    return Object.entries(rules.offenseCategories || {}).map(([key, val]) => ({
         id: key,
         label: val.label,
     }));
 }
 
 function getStates() {
-    // Texas only — return single entry
     return [{ id: 'TX', label: 'Texas' }];
 }
 

@@ -1,148 +1,60 @@
 {
-    "texas": {
-        "name": "Texas",
-        "waitingPeriod": {
-            "misdemeanor_classC": 0,
-            "misdemeanor_classAB": 2,
-            "felony": 3,
-            "arrest": 0,
-            "deferred": 0
-        },
-        "disqualifying": [
-            "sex_offense",
-            "murder",
-            "child_abuse",
-            "family_violence_conviction",
-            "human_trafficking"
-        ],
-        "expungementEligible": [
-            "Acquittals (found not guilty)",
-            "Dismissed cases",
-            "Pardoned convictions",
-            "Certain Class C misdemeanors (deferred disposition completed)",
-            "Arrests that did not lead to conviction (after waiting period)",
-            "Identity theft victims (wrongful arrest)"
-        ],
-        "nondisclosureEligible": [
-            "Successfully completed deferred adjudication (most offenses)",
-            "Certain misdemeanors after waiting period",
-            "Some non-violent felonies (5-year wait after deferred)",
-            "DWI first offense (if BAC < 0.15, no accident, 2-year wait)"
-        ],
-        "notes": "Texas has two main paths: Expunction (complete removal — for acquittals, dismissals, pardons) and Nondisclosure Orders (sealing — for deferred adjudication completions). Nondisclosure does NOT apply to convictions, only deferred adjudication."
+  "texas": {
+    "name": "Texas",
+    "waitPeriods": {
+      "unfiled": {
+        "classCDays": 180,
+        "misdemeanorYears": 1,
+        "felonyYears": 3
+      },
+      "dismissed": {
+        "misdemeanorYears": 2,
+        "felonyStandardYears": 5,
+        "felonyFraudYears": 7,
+        "felonyDeedTheftYears": 10
+      },
+      "deferred": {
+        "felonyYears": 5,
+        "misdemeanorYears": 2,
+        "misdemeanorMinorNonviolentYears": 0
+      },
+      "convictedMisdemeanorYears": 2
     },
-    "offenseCategories": {
-        "arrest_no_conviction": {
-            "label": "Arrest with no conviction / case dismissed",
-            "typicalSeverity": "arrest",
-            "generallyEligible": true
-        },
-        "deferred_adjudication": {
-            "label": "Deferred adjudication (completed successfully)",
-            "typicalSeverity": "deferred",
-            "generallyEligible": true
-        },
-        "drug_possession": {
-            "label": "Drug possession (personal use)",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": true
-        },
-        "drug_trafficking": {
-            "label": "Drug trafficking / delivery",
-            "typicalSeverity": "felony",
-            "generallyEligible": false
-        },
-        "theft_petty": {
-            "label": "Petty theft / shoplifting",
-            "typicalSeverity": "misdemeanor_classC",
-            "generallyEligible": true
-        },
-        "theft_grand": {
-            "label": "Grand theft / burglary",
-            "typicalSeverity": "felony",
-            "generallyEligible": true
-        },
-        "assault_simple": {
-            "label": "Simple assault",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": true
-        },
-        "assault_aggravated": {
-            "label": "Aggravated assault",
-            "typicalSeverity": "felony",
-            "generallyEligible": false
-        },
-        "dwi_first": {
-            "label": "DWI (first offense)",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": true
-        },
-        "dwi_multiple": {
-            "label": "DWI (multiple offenses)",
-            "typicalSeverity": "felony",
-            "generallyEligible": false
-        },
-        "disorderly_conduct": {
-            "label": "Disorderly conduct",
-            "typicalSeverity": "misdemeanor_classC",
-            "generallyEligible": true
-        },
-        "trespassing": {
-            "label": "Trespassing",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": true
-        },
-        "fraud": {
-            "label": "Fraud / forgery",
-            "typicalSeverity": "felony",
-            "generallyEligible": true
-        },
-        "domestic_violence": {
-            "label": "Family violence",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": false
-        },
-        "sex_offense": {
-            "label": "Sex offense",
-            "typicalSeverity": "felony",
-            "generallyEligible": false
-        },
-        "weapons": {
-            "label": "Weapons charge",
-            "typicalSeverity": "felony",
-            "generallyEligible": false
-        },
-        "property_damage": {
-            "label": "Criminal mischief / property damage",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": true
-        },
-        "other_misdemeanor": {
-            "label": "Other misdemeanor",
-            "typicalSeverity": "misdemeanor_classAB",
-            "generallyEligible": true
-        },
-        "other_felony": {
-            "label": "Other felony",
-            "typicalSeverity": "felony",
-            "generallyEligible": true
-        }
+    "lifetimeBars": [
+      "sex_offense",
+      "murder",
+      "kidnapping",
+      "human_trafficking",
+      "family_violence"
+    ],
+    "notes": "Deterministic eligibility framework aligned to Texas expunction and nondisclosure pathways with conservative wait-time assumptions for uncertain classifications."
+  },
+  "offenseCategories": {
+    "class_c": {
+      "label": "Class C Misdemeanor"
     },
-    "services": {
-        "standard": {
-            "label": "Standard Processing",
-            "price": 1395,
-            "timeline": "3-6 months"
-        },
-        "rush": {
-            "label": "Rush Processing",
-            "price": 2000,
-            "timeline": "Expedited"
-        },
-        "free_check": {
-            "label": "Free Eligibility Check",
-            "price": 0,
-            "timeline": "5 minutes"
-        }
+    "misdemeanor": {
+      "label": "Misdemeanor (A/B)"
+    },
+    "felony": {
+      "label": "Felony"
     }
+  },
+  "services": {
+    "standard": {
+      "label": "Standard Processing",
+      "price": 1395,
+      "timeline": "Typically 90-120 days"
+    },
+    "rush": {
+      "label": "Rush Processing",
+      "price": 2000,
+      "timeline": "Priority drafting and filing"
+    },
+    "discovery": {
+      "label": "Record Discovery & Strategy Session",
+      "price": 49,
+      "timeline": "Initial verification step"
+    }
+  }
 }
