@@ -10,8 +10,8 @@
 
 const INTAKE_FORM_URL = 'https://expungement.legal/intake';
 const DISCOVERY_URL = 'https://expungement.legal/record-discovery';
-const PAYMENT_STANDARD_URL = 'https://expungement.legal/pay/standard';
-const PAYMENT_RUSH_URL = 'https://expungement.legal/pay/rush';
+const PAYMENT_STANDARD_URL = 'https://wyde-associates-pllc.myhelcim.com/hosted/?token=15d8207c6950bd70598f7d&amount=1395.00&amountHash=28e99d1d02246c185852e8233774fd9ead0f18de9fd60cab90e0b6623d76c188';
+const PAYMENT_RUSH_URL = 'https://wyde-associates-pllc.myhelcim.com/hosted/?token=1e67a0f26e6667c462db79&amount=2000.00&amountHash=13acecdae0ca92569392dee59d8180b0c7f68a72ea30911188ca07c1518616a9';
 const PAYMENT_PLAN_URL = 'https://expungement.legal/payment-plan';
 const FREE_CONSULTATION_URL = 'https://www.expungement.legal/#FreeConsultation';
 
