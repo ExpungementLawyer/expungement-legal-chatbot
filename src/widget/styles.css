@@ -14,6 +14,8 @@
 }
 
 #el-legal-widget-root .el-widget-overlay {
+  height: var(--el-widget-vh, 100svh);
+  transform: translateY(var(--el-widget-vvo, 0px));
   overscroll-behavior: contain;
   overscroll-behavior-y: contain;
   touch-action: manipulation;
@@ -30,8 +32,21 @@
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  scroll-padding-bottom: calc(var(--el-widget-composer-h, 132px) + env(safe-area-inset-bottom));
   scrollbar-width: thin;
   scrollbar-color: #c2b79f #f4efe4;
+}
+
+#el-legal-widget-root .el-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+#el-legal-widget-root .el-composer input,
+#el-legal-widget-root .el-composer textarea {
+  font-size: 16px;
 }
 
 #el-legal-widget-root .el-conversation-scroll::-webkit-scrollbar {

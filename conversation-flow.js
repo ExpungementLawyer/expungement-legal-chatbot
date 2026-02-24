@@ -13,7 +13,6 @@ const DISCOVERY_URL = 'https://expungement.legal/record-discovery';
 const PAYMENT_STANDARD_URL = 'https://expungement.legal/pay/standard';
 const PAYMENT_RUSH_URL = 'https://expungement.legal/pay/rush';
 const PAYMENT_PLAN_URL = 'https://expungement.legal/payment-plan';
-const OUT_OF_STATE_GUIDE_URL = 'https://expungement.legal/out-of-state-options';
 
 function monthNameToNumber(name) {
     const map = {
@@ -329,7 +328,6 @@ const STEPS = {
             if (reply === 'discovery_49') return 'DISCOVERY_CHECKOUT';
             if (reply === 'join_waitlist') return 'WAITLIST_CAPTURE';
             if (reply === 'schedule_consult' || reply === 'schedule_priority_call') return 'BOOK_CONSULT';
-            if (reply === 'out_state_resources') return 'OUT_OF_STATE_RESOURCES';
             if (reply === 'start_over') return 'ASK_TEXAS_CASE';
             return 'FREE_CHAT';
         },
@@ -457,21 +455,6 @@ const STEPS = {
         next: (reply) => (reply === 'start_over' ? 'ASK_TEXAS_CASE' : 'FREE_CHAT'),
     },
 
-    OUT_OF_STATE_RESOURCES: {
-        id: 'OUT_OF_STATE_RESOURCES',
-        message:
-            `We only handle Texas state arrests and Texas state court charges. We do not handle federal cases or cases from other states.\n\n👉 [Review Out-of-State Options](${OUT_OF_STATE_GUIDE_URL})\n\nIf any part of your record is in Texas state court, we can review that Texas portion.`,
-        quickReplies: [
-            { id: 'schedule_consult', label: 'Discuss Texas-Specific Portion' },
-            { id: 'start_over', label: 'Restart Check' },
-        ],
-        next: (reply) => {
-            if (reply === 'schedule_consult') return 'BOOK_CONSULT';
-            if (reply === 'start_over') return 'ASK_TEXAS_CASE';
-            return 'FREE_CHAT';
-        },
-    },
-
     LEAD_CAPTURE: {
         id: 'LEAD_CAPTURE',
         message: 'Share updated contact details and our team will follow up within one business day.',
@@ -578,8 +561,8 @@ function getResultQuickReplies(result) {
             ];
         case 'not_texas':
             return [
-                { id: 'out_state_resources', label: 'See Out-of-State Options' },
-                { id: 'ask_questions', label: 'Ask a Question' },
+                { id: 'schedule_consult', label: 'Discuss Texas-Specific Portion' },
+                { id: 'start_over', label: 'Restart Check' },
             ];
         default:
             return [

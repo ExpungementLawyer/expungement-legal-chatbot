@@ -9,6 +9,7 @@ import { AssistantCard, EligibilityCard, UserCard } from './components/Conversat
 import { ContactCaptureCard, LeadCaptureCard } from './components/ContactCards';
 
 const SCROLL_EPSILON = 1;
+const DOUBLE_FRAME_DELAY = 2;
 
 function createId(prefix = 'msg') {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36)}`;
@@ -84,11 +85,12 @@ function isIOSDevice() {
   return /iP(hone|ad|od)/.test(platform) || (/Mac/.test(platform) && 'ontouchend' in document) || /iP(hone|ad|od)/.test(ua);
 }
 
-function lockDocumentScroll() {
+function lockDocumentScroll(lockedScrollYRef) {
   const scrollY = window.scrollY || window.pageYOffset || 0;
   const html = document.documentElement;
   const body = document.body;
 
+  lockedScrollYRef.current = scrollY;
   html.classList.add('el-widget-body-lock');
   body.classList.add('el-widget-body-lock');
   body.style.top = `-${scrollY}px`;
@@ -97,7 +99,7 @@ function lockDocumentScroll() {
     html.classList.remove('el-widget-body-lock');
     body.classList.remove('el-widget-body-lock');
     body.style.top = '';
-    window.scrollTo(0, scrollY);
+    window.scrollTo(0, lockedScrollYRef.current || scrollY);
   };
 }
 
@@ -163,6 +165,10 @@ export default function WidgetApp({ apiBase }) {
   const initializedRef = useRef(false);
   const conversationRef = useRef(null);
   const overlayRef = useRef(null);
+  const composerRef = useRef(null);
+  const composerInputRef = useRef(null);
+  const lockedScrollYRef = useRef(0);
+  const focusStabilizeFrameRef = useRef(0);
 
   const placeholder =
     pendingInputType === 'name'
@@ -176,6 +182,20 @@ export default function WidgetApp({ apiBase }) {
             : pendingInputType === 'offense'
               ? 'Describe your charge(s)...'
       : 'Describe your situation...';
+  const isSingleLineInput =
+    pendingInputType === 'name' ||
+    pendingInputType === 'arrest_date' ||
+    pendingInputType === 'deferred_discharge_date' ||
+    pendingInputType === 'conviction_sentence_date';
+
+  const composerInputMode =
+    pendingInputType === 'arrest_date' ||
+    pendingInputType === 'deferred_discharge_date' ||
+    pendingInputType === 'conviction_sentence_date'
+      ? 'numeric'
+      : 'text';
+
+  const composerAutoCapitalize = pendingInputType === 'name' ? 'words' : 'none';
 
   const trackEvent = useCallback(
     (event, data = '') => {
@@ -274,16 +294,67 @@ export default function WidgetApp({ apiBase }) {
     }
   }, [isOpen, initializeFlow]);
 
+  const syncComposerMetrics = useCallback(() => {
+    const composer = composerRef.current;
+    if (!composer) return;
+    const height = Math.max(56, Math.round(composer.getBoundingClientRect().height));
+    document.documentElement.style.setProperty('--el-widget-composer-h', `${height}px`);
+  }, []);
+
+  const stabilizeFocusedInputViewport = useCallback(() => {
+    if (document.activeElement !== composerInputRef.current) return;
+
+    window.scrollTo(0, lockedScrollYRef.current || 0);
+    syncComposerMetrics();
+
+    const panel = conversationRef.current;
+    if (!panel) return;
+    panel.scrollTo({ top: panel.scrollHeight, behavior: 'auto' });
+  }, [syncComposerMetrics]);
+
+  const scheduleFocusStabilization = useCallback(() => {
+    if (focusStabilizeFrameRef.current) cancelAnimationFrame(focusStabilizeFrameRef.current);
+
+    let framesRemaining = DOUBLE_FRAME_DELAY;
+    const tick = () => {
+      framesRemaining -= 1;
+      if (framesRemaining <= 0) {
+        stabilizeFocusedInputViewport();
+        focusStabilizeFrameRef.current = 0;
+        return;
+      }
+      focusStabilizeFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    focusStabilizeFrameRef.current = requestAnimationFrame(tick);
+  }, [stabilizeFocusedInputViewport]);
+
+  const handleComposerBlur = useCallback(() => {
+    if (focusStabilizeFrameRef.current) {
+      cancelAnimationFrame(focusStabilizeFrameRef.current);
+      focusStabilizeFrameRef.current = 0;
+    }
+    window.scrollTo(0, lockedScrollYRef.current || 0);
+    syncComposerMetrics();
+  }, [syncComposerMetrics]);
+
   useEffect(() => {
     if (!isOpen) return undefined;
-    return lockDocumentScroll();
+    return lockDocumentScroll(lockedScrollYRef);
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
     const updateViewportHeight = () => {
-      const viewportHeight = window.visualViewport?.height || window.innerHeight;
-      document.documentElement.style.setProperty('--el-widget-vh', `${Math.round(viewportHeight)}px`);
+      const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight);
+      const viewportOffsetTop = Math.round(window.visualViewport?.offsetTop || 0);
+      document.documentElement.style.setProperty('--el-widget-vh', `${viewportHeight}px`);
+      document.documentElement.style.setProperty('--el-widget-vvo', `${viewportOffsetTop}px`);
+      syncComposerMetrics();
+
+      if (document.activeElement === composerInputRef.current) {
+        window.scrollTo(0, lockedScrollYRef.current || 0);
+      }
     };
 
     updateViewportHeight();
@@ -299,8 +370,27 @@ export default function WidgetApp({ apiBase }) {
       window.visualViewport?.removeEventListener('resize', updateViewportHeight);
       window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
       document.documentElement.style.removeProperty('--el-widget-vh');
+      document.documentElement.style.removeProperty('--el-widget-vvo');
     };
-  }, [isOpen]);
+  }, [isOpen, syncComposerMetrics]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    syncComposerMetrics();
+
+    const composer = composerRef.current;
+    if (!composer || typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(() => {
+      syncComposerMetrics();
+      if (document.activeElement === composerInputRef.current) {
+        stabilizeFocusedInputViewport();
+      }
+    });
+    observer.observe(composer);
+
+    return () => observer.disconnect();
+  }, [isOpen, stabilizeFocusedInputViewport, syncComposerMetrics]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -319,8 +409,16 @@ export default function WidgetApp({ apiBase }) {
   useEffect(() => {
     const panel = conversationRef.current;
     if (!panel) return;
-    panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
+    panel.scrollTo({ top: panel.scrollHeight, behavior: 'auto' });
   }, [messages, quickReplies, formMode]);
+
+  useEffect(() => {
+    return () => {
+      if (focusStabilizeFrameRef.current) {
+        cancelAnimationFrame(focusStabilizeFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleQuickReply = useCallback(
     (reply) => {
@@ -514,7 +612,6 @@ export default function WidgetApp({ apiBase }) {
         <section
           ref={overlayRef}
           className="el-widget-overlay fixed left-0 top-0 z-[99999] w-full bg-[rgba(9,19,37,0.35)] p-3 sm:p-5 lg:p-6"
-          style={{ height: 'var(--el-widget-vh, 100dvh)' }}
         >
           <div className="mx-auto flex h-full max-w-[980px] flex-col overflow-hidden rounded border border-legal-border bg-legal-cream shadow-legal">
             <HeaderBar onClose={() => setIsOpen(false)} />
@@ -547,6 +644,13 @@ export default function WidgetApp({ apiBase }) {
                 onSubmit={handleSubmit}
                 disabled={isLoading}
                 placeholder={placeholder}
+                singleLine={isSingleLineInput}
+                inputMode={composerInputMode}
+                autoCapitalize={composerAutoCapitalize}
+                containerRef={composerRef}
+                inputRef={composerInputRef}
+                onInputFocus={scheduleFocusStabilization}
+                onInputBlur={handleComposerBlur}
               />
             </div>
           </div>
