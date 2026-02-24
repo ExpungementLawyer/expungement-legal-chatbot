@@ -14,10 +14,19 @@ export default function HeaderBar({ onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="rounded border border-[#4b5e7e] px-2 py-1 text-sm text-[#e8ecf5] transition hover:border-legal-gold hover:text-white"
+          className="flex h-9 w-9 items-center justify-center rounded border border-[#4b5e7e] bg-[#162a49] text-[#f5f7fb] transition hover:border-legal-gold hover:text-white"
           aria-label="Close"
+          title="Close"
         >
-          Close
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
         </button>
       </div>
     </header>
