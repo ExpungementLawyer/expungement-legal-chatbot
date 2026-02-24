@@ -171,6 +171,15 @@ function scanBannedPhrases(text) {
 // ═══════════════════════════════════════════════════════════════════════════
 const sessions = new Map();
 const SESSION_TTL = 30 * 60 * 1000; // 30 minutes
+const CONVERSION_INTENTS = new Set([
+    'retain_standard',
+    'retain_rush',
+    'payment_plan',
+    'discovery_49',
+    'schedule_consult',
+    'schedule_priority_call',
+    'free_consult_backup',
+]);
 
 function getOrCreateSession(sessionId) {
     let session = sessions.get(sessionId);
@@ -180,6 +189,27 @@ function getOrCreateSession(sessionId) {
     }
     session.lastAccess = Date.now();
     return session;
+}
+
+function persistSessionLeadSnapshot({ sessionId, session, eligibilityLabel = 'in_progress' }) {
+    if (!session) return;
+
+    const firstName = sanitizeInput(session?.collectedData?.firstName || '');
+    const email = sanitizeInput(session?.collectedData?.email || '');
+    const phone = sanitizeInput(session?.collectedData?.phone || '');
+
+    // If we have no identifying contact payload, skip snapshot.
+    if (!firstName && !email && !phone) return;
+
+    recordLead({
+        sessionId: sessionId || 'unknown',
+        name: firstName,
+        email,
+        phone,
+        state: session?.collectedData?.jurisdiction || '',
+        offenseType: session?.collectedData?.offenseLevel || '',
+        eligibilityResult: eligibilityLabel || 'in_progress',
+    });
 }
 
 // Cleanup stale sessions
@@ -219,14 +249,17 @@ app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
 
     // If contact_form input, also save as a lead early
     if (input && typeof input === 'object' && (input.email || input.phone)) {
-        recordLead({
+        persistSessionLeadSnapshot({
             sessionId,
-            name: session.collectedData.firstName || '',
-            email: sanitizeInput(input.email || ''),
-            phone: sanitizeInput(input.phone || ''),
-            state: session.collectedData.jurisdiction || '',
-            offenseType: session.collectedData.offenseLevel || '',
-            eligibilityResult: 'in_progress',
+            session: {
+                ...session,
+                collectedData: {
+                    ...session.collectedData,
+                    email: input.email || session.collectedData.email || '',
+                    phone: input.phone || session.collectedData.phone || '',
+                },
+            },
+            eligibilityLabel: 'in_progress',
         });
         recordEvent({ sessionId, event: 'contact_captured_early', data: { hasEmail: !!input.email } });
     }
@@ -254,6 +287,30 @@ app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
                 bucket: eligibilityResult.bucket,
                 status: eligibilityResult.status,
             },
+        });
+
+        // Write an updated lead snapshot with eligibility status for CRM tracking.
+        persistSessionLeadSnapshot({
+            sessionId,
+            session,
+            eligibilityLabel: eligibilityResult.status,
+        });
+    }
+
+    if (typeof input === 'string' && CONVERSION_INTENTS.has(input)) {
+        recordEvent({
+            sessionId,
+            event: 'conversion_intent',
+            data: {
+                intent: input,
+                status: session.status || '',
+            },
+        });
+
+        persistSessionLeadSnapshot({
+            sessionId,
+            session,
+            eligibilityLabel: `intent_${input}`,
         });
     }
 
@@ -398,7 +455,17 @@ app.post('/api/event', eventRateLimiter, (req, res) => {
 
 // ─── Health check ─────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    const sheetsConfigured = Boolean(
+        process.env.GOOGLE_SHEETS_SPREADSHEET_ID &&
+        (process.env.GOOGLE_CREDENTIALS_JSON || process.env.GOOGLE_CREDENTIALS_PATH)
+    );
+
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        sheetsConfigured,
+        nodeEnv: process.env.NODE_ENV || 'development',
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

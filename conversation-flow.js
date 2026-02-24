@@ -13,6 +13,7 @@ const DISCOVERY_URL = 'https://expungement.legal/record-discovery';
 const PAYMENT_STANDARD_URL = 'https://expungement.legal/pay/standard';
 const PAYMENT_RUSH_URL = 'https://expungement.legal/pay/rush';
 const PAYMENT_PLAN_URL = 'https://expungement.legal/payment-plan';
+const FREE_CONSULTATION_URL = 'https://www.expungement.legal/#FreeConsultation';
 
 function monthNameToNumber(name) {
     const map = {
@@ -327,6 +328,7 @@ const STEPS = {
             if (reply === 'payment_plan') return 'PAYMENT_PLAN';
             if (reply === 'discovery_49') return 'DISCOVERY_CHECKOUT';
             if (reply === 'join_waitlist') return 'WAITLIST_CAPTURE';
+            if (reply === 'free_consult_backup') return 'FREE_CONSULT_FALLBACK';
             if (reply === 'schedule_consult' || reply === 'schedule_priority_call') return 'BOOK_CONSULT';
             if (reply === 'start_over') return 'ASK_TEXAS_CASE';
             return 'FREE_CHAT';
@@ -338,12 +340,12 @@ const STEPS = {
         message:
             `Rush selected.\n\n👉 [Complete Rush Retainer — $2,000](${PAYMENT_RUSH_URL})\n\nWe prioritize drafting and filing to shorten your time-to-clearance where legally possible.`,
         quickReplies: [
-            { id: 'retain_standard', label: 'Switch to Standard' },
+            { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
             { id: 'schedule_consult', label: 'Speak With Legal Team' },
             { id: 'start_over', label: 'Check Another Record' },
         ],
         next: (reply) => {
-            if (reply === 'retain_standard') return 'PAYMENT_STANDARD';
+            if (reply === 'free_consult_backup') return 'FREE_CONSULT_FALLBACK';
             if (reply === 'schedule_consult') return 'BOOK_CONSULT';
             if (reply === 'start_over') return 'ASK_TEXAS_CASE';
             return 'FREE_CHAT';
@@ -356,12 +358,12 @@ const STEPS = {
             `Standard selected.\n\n👉 [Complete Standard Retainer — $1,395](${PAYMENT_STANDARD_URL})\n\nWe handle the petition, filing, prosecutor notice, and final order process start-to-finish.`,
         quickReplies: [
             { id: 'retain_rush', label: 'Upgrade to Rush' },
-            { id: 'payment_plan', label: 'View Payment Plans' },
+            { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
             { id: 'schedule_consult', label: 'Speak With Legal Team' },
         ],
         next: (reply) => {
             if (reply === 'retain_rush') return 'PAYMENT_RUSH';
-            if (reply === 'payment_plan') return 'PAYMENT_PLAN';
+            if (reply === 'free_consult_backup') return 'FREE_CONSULT_FALLBACK';
             if (reply === 'schedule_consult') return 'BOOK_CONSULT';
             return 'FREE_CHAT';
         },
@@ -374,11 +376,13 @@ const STEPS = {
         quickReplies: [
             { id: 'retain_standard', label: 'Proceed With Standard' },
             { id: 'retain_rush', label: 'Proceed With Rush' },
+            { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
             { id: 'schedule_consult', label: 'Call Me to Review Options' },
         ],
         next: (reply) => {
             if (reply === 'retain_standard') return 'PAYMENT_STANDARD';
             if (reply === 'retain_rush') return 'PAYMENT_RUSH';
+            if (reply === 'free_consult_backup') return 'FREE_CONSULT_FALLBACK';
             if (reply === 'schedule_consult') return 'BOOK_CONSULT';
             return 'FREE_CHAT';
         },
@@ -389,8 +393,25 @@ const STEPS = {
         message:
             `To avoid guessing on court outcomes, we offer a Record Discovery & Strategy Session.\n\n👉 [Start Record Discovery — $49](${DISCOVERY_URL})\n\nWe pull the official DPS history and provide a legal strategy review.`,
         quickReplies: [
+            { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
             { id: 'schedule_consult', label: 'Speak With Legal Team First' },
             { id: 'start_over', label: 'Restart Eligibility Check' },
+        ],
+        next: (reply) => {
+            if (reply === 'free_consult_backup') return 'FREE_CONSULT_FALLBACK';
+            if (reply === 'schedule_consult') return 'BOOK_CONSULT';
+            if (reply === 'start_over') return 'ASK_TEXAS_CASE';
+            return 'FREE_CHAT';
+        },
+    },
+
+    FREE_CONSULT_FALLBACK: {
+        id: 'FREE_CONSULT_FALLBACK',
+        message:
+            `If checkout is not the best fit right now, use our secure consultation form and our team will review your case.\n\n👉 [Open Free Consultation Form](${FREE_CONSULTATION_URL})`,
+        quickReplies: [
+            { id: 'schedule_consult', label: 'Request Attorney Callback' },
+            { id: 'start_over', label: 'Check Another Record' },
         ],
         next: (reply) => {
             if (reply === 'schedule_consult') return 'BOOK_CONSULT';
@@ -540,28 +561,33 @@ function getResultQuickReplies(result) {
                 { id: 'retain_standard', label: 'Start Standard — $1,395' },
                 { id: 'retain_rush', label: 'Start Rush — $2,000' },
                 { id: 'payment_plan', label: 'See Payment Plan Options' },
+                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
                 { id: 'schedule_consult', label: 'Speak With Legal Team' },
             ];
         case 'waitlist':
             return [
                 { id: 'join_waitlist', label: 'Join Priority Waitlist' },
+                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
                 { id: 'schedule_consult', label: 'Request Legal Review' },
                 { id: 'ask_questions', label: 'Ask a Question' },
             ];
         case 'needs_discovery':
             return [
                 { id: 'discovery_49', label: 'Start Record Discovery — $49' },
+                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
                 { id: 'schedule_consult', label: 'Speak With Legal Team' },
                 { id: 'ask_questions', label: 'Ask a Question' },
             ];
         case 'needs_human_review':
             return [
                 { id: 'schedule_priority_call', label: 'Request Priority Callback' },
+                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
                 { id: 'ask_questions', label: 'Ask a Question' },
             ];
         case 'not_texas':
             return [
                 { id: 'schedule_consult', label: 'Discuss Texas-Specific Portion' },
+                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
                 { id: 'start_over', label: 'Restart Check' },
             ];
         default:
