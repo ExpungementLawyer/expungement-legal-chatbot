@@ -9,7 +9,7 @@
     'use strict';
 
     // ─── Config ────────────────────────────────────────────────────────────
-    const WIDGET_VERSION = '2026-02-24.1';
+    const WIDGET_VERSION = '2026-02-24.2';
 
     function resolveScriptTag() {
         if (document.currentScript) return document.currentScript;
@@ -149,13 +149,29 @@
         msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' });
     }
 
+    function formatMessageTime(date = new Date()) {
+        try {
+            return new Intl.DateTimeFormat(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+            }).format(date);
+        } catch (_) {
+            const h = date.getHours();
+            const m = String(date.getMinutes()).padStart(2, '0');
+            return `${h}:${m}`;
+        }
+    }
+
     // ─── Add message ───────────────────────────────────────────────────────
     function addMessage(text, sender, id) {
         const msgs = document.getElementById('el-messages');
         const div = document.createElement('div');
         div.className = `el-msg el-msg-${sender}`;
         if (id) div.id = id;
-        div.innerHTML = formatMessage(text);
+        div.innerHTML = `
+      <div class="el-msg-bubble">${formatMessage(text)}</div>
+      <div class="el-msg-time">${formatMessageTime()}</div>
+    `;
         msgs.appendChild(div);
         scrollToBottom();
         return div;
@@ -496,7 +512,8 @@
 
                         if (delta) {
                             fullText += delta;
-                            msgEl.innerHTML = formatMessage(fullText);
+                            const bubbleEl = msgEl.querySelector('.el-msg-bubble');
+                            if (bubbleEl) bubbleEl.innerHTML = formatMessage(fullText);
                             scrollToBottom();
                         }
                     } catch {/* skip invalid JSON */ }
@@ -505,6 +522,8 @@
 
             // Finalize
             if (msgEl.id === 'el-streaming') msgEl.removeAttribute('id');
+            const timeEl = msgEl.querySelector('.el-msg-time');
+            if (timeEl) timeEl.textContent = formatMessageTime();
             retryCount = 0;
 
             // Show follow-up quick replies
@@ -527,11 +546,12 @@
         const msgs = document.getElementById('el-messages');
         const div = document.createElement('div');
         div.className = 'el-error-msg';
-        div.innerHTML = `${text}<br><button class="el-retry-btn" id="el-retry">Try again</button>`;
+        div.innerHTML = `${text}<br><button class="el-retry-btn" type="button">Try again</button>`;
         msgs.appendChild(div);
         scrollToBottom(true);
 
-        document.getElementById('el-retry').addEventListener('click', () => {
+        const retryBtn = div.querySelector('.el-retry-btn');
+        retryBtn.addEventListener('click', () => {
             div.remove();
             retryCount++;
             const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
