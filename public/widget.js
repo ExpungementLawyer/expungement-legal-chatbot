@@ -9,7 +9,7 @@
     'use strict';
 
     // ─── Config ────────────────────────────────────────────────────────────
-    const WIDGET_VERSION = '2026-02-24.4';
+    const WIDGET_VERSION = '2026-02-24.5';
 
     function resolveScriptTag() {
         if (document.currentScript) return document.currentScript;
