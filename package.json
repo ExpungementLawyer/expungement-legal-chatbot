@@ -5,11 +5,23 @@
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
-        "dev": "node server.js"
+        "dev": "node server.js",
+        "build:widget:css": "tailwindcss -c tailwind.config.js -i ./src/widget/styles.css -o ./public/widget.css --minify",
+        "build:widget:js": "esbuild ./src/widget/entry.jsx --bundle --format=iife --target=es2018 --jsx=automatic --minify --outfile=./public/widget.js",
+        "build:widget": "npm run build:widget:css && npm run build:widget:js",
+        "build": "npm run build:widget"
     },
     "dependencies": {
         "cors": "^2.8.5",
         "dotenv": "^16.4.7",
         "express": "^4.21.2"
+    },
+    "devDependencies": {
+        "autoprefixer": "^10.4.24",
+        "esbuild": "^0.27.3",
+        "postcss": "^8.5.6",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "tailwindcss": "^3.4.17"
     }
 }
