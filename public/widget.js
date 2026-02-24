@@ -9,7 +9,7 @@
     'use strict';
 
     // ─── Config ────────────────────────────────────────────────────────────
-    const WIDGET_VERSION = '2026-02-24.2';
+    const WIDGET_VERSION = '2026-02-24.3';
 
     function resolveScriptTag() {
         if (document.currentScript) return document.currentScript;
@@ -51,6 +51,13 @@
     let userScrolled = false;
     let retryCount = 0;
 
+    function updateSendButtonState() {
+        const inputEl = document.getElementById('el-input');
+        const sendBtn = document.getElementById('el-send');
+        if (!inputEl || !sendBtn) return;
+        sendBtn.disabled = isLoading || inputEl.value.trim().length === 0;
+    }
+
     // ─── Load CSS ──────────────────────────────────────────────────────────
     function loadCSS() {
         if (document.getElementById('el-chatbot-css')) return;
@@ -86,32 +93,43 @@
         widget.innerHTML = `
       <div class="el-header">
         <div class="el-header-info">
-          <div class="el-header-avatar">⚖️</div>
+          <div class="el-header-avatar">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
           <div class="el-header-text">
             <h3>Expungement.Legal</h3>
-            <p><span class="el-status-dot"></span> Online — free eligibility check</p>
+            <p>online</p>
           </div>
         </div>
         <div class="el-header-actions">
-          <button class="el-header-btn el-close-btn" aria-label="Close">${ICONS.close}</button>
+          <button class="el-header-btn" id="el-close-btn" aria-label="Close">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+          </button>
         </div>
       </div>
       <div class="el-messages" id="el-messages"></div>
       <div class="el-input-area">
-        <input type="text" class="el-input-field" id="el-input" placeholder="Type your message…" autocomplete="off" />
-        <button class="el-send-btn" id="el-send" aria-label="Send">${ICONS.send}</button>
+        <input type="text" id="el-input" class="el-input-field" placeholder="Type a message" autocomplete="off">
+        <button id="el-send" class="el-send-btn" disabled aria-label="Send">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
       </div>
-      <button class="el-human-btn" id="el-human-btn">${ICONS.person} Talk to a real person</button>
+      <button class="el-human-btn" id="el-human-form-btn">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> 
+        Talk to a real person
+      </button>
     `;
         document.body.appendChild(widget);
 
         // Event listeners
-        widget.querySelector('.el-close-btn').addEventListener('click', toggleWidget);
+        widget.querySelector('#el-close-btn').addEventListener('click', toggleWidget);
         document.getElementById('el-send').addEventListener('click', handleSend);
         document.getElementById('el-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
         });
-        document.getElementById('el-human-btn').addEventListener('click', showLeadForm);
+        document.getElementById('el-input').addEventListener('input', updateSendButtonState);
+        document.getElementById('el-human-form-btn').addEventListener('click', showLeadForm);
+        updateSendButtonState();
 
         // Scroll detection
         const msgs = document.getElementById('el-messages');
@@ -169,8 +187,7 @@
         div.className = `el-msg el-msg-${sender}`;
         if (id) div.id = id;
         div.innerHTML = `
-      <div class="el-msg-bubble">${formatMessage(text)}</div>
-      <div class="el-msg-time">${formatMessageTime()}</div>
+      <div class="el-msg-bubble">${formatMessage(text)}<span class="el-msg-time">${formatMessageTime()}</span></div>
     `;
         msgs.appendChild(div);
         scrollToBottom();
@@ -438,12 +455,12 @@
 
         input.value = '';
         input.placeholder = 'Type your message…';
+        updateSendButtonState();
         removeQuickReplies();
         addMessage(message, 'user');
 
         // If we're expecting a specific input type, route to flow
         if (pendingInputType) {
-            const type = pendingInputType;
             pendingInputType = null;
             advanceFlow(message);
             return;
@@ -455,7 +472,7 @@
 
     async function sendToAI(message) {
         isLoading = true;
-        document.getElementById('el-send').disabled = true;
+        updateSendButtonState();
         showTyping();
 
         try {
@@ -513,7 +530,9 @@
                         if (delta) {
                             fullText += delta;
                             const bubbleEl = msgEl.querySelector('.el-msg-bubble');
-                            if (bubbleEl) bubbleEl.innerHTML = formatMessage(fullText);
+                            if (bubbleEl) {
+                                bubbleEl.innerHTML = `${formatMessage(fullText)}<span class="el-msg-time">${formatMessageTime()}</span>`;
+                            }
                             scrollToBottom();
                         }
                     } catch {/* skip invalid JSON */ }
@@ -537,7 +556,7 @@
             showError('Connection error. Please try again.');
         } finally {
             isLoading = false;
-            document.getElementById('el-send').disabled = false;
+            updateSendButtonState();
         }
     }
 
