@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import WidgetApp from './app/WidgetApp';
 
-const WIDGET_VERSION = '2026-02-24.6';
+const WIDGET_VERSION = '2026-02-24.7';
 
 function resolveScriptTag() {
   if (document.currentScript) return document.currentScript;

@@ -1,26 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { postJson, streamAssistantReply } from './api';
-import { buildGuidanceFromAssistant, formatTime, getSessionId, parseAssistantText } from './utils';
+import { formatTime, getSessionId, parseAssistantText } from './utils';
 import HeaderBar from './components/HeaderBar';
-import GuidancePanel from './components/GuidancePanel';
 import InputComposer from './components/InputComposer';
 import QuickReplies from './components/QuickReplies';
 import SkeletonCard from './components/SkeletonCard';
 import { AssistantCard, EligibilityCard, UserCard } from './components/ConversationCard';
 import { ContactCaptureCard, LeadCaptureCard } from './components/ContactCards';
-
-const DEFAULT_GUIDANCE = {
-  summary: 'Describe your case details to generate a tailored legal summary.',
-  nextSteps: [
-    'Share offense type and case outcome.',
-    'Include approximate dates for charge and disposition.',
-    'Provide county when known for more accurate guidance.',
-  ],
-  importantNotes: [
-    'This assistant provides general information only and not legal advice.',
-    'Final eligibility should be reviewed by a licensed Texas attorney.',
-  ],
-};
 
 function createId(prefix = 'msg') {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36)}`;
@@ -80,7 +66,6 @@ export default function WidgetApp({ apiBase }) {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [quickReplies, setQuickReplies] = useState([]);
-  const [guidance, setGuidance] = useState(DEFAULT_GUIDANCE);
   const [inputValue, setInputValue] = useState('');
   const [formMode, setFormMode] = useState(null);
   const [pendingInputType, setPendingInputType] = useState(null);
@@ -112,33 +97,16 @@ export default function WidgetApp({ apiBase }) {
     setMessages((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
 
-  const applyGuidanceFromEntry = useCallback((entry, eligibilityResult = null) => {
-    const nextGuidance = buildGuidanceFromAssistant({
-      text: entry.rawText || entry.body,
-      parsed: {
-        title: entry.title,
-        body: entry.body,
-        bulletItems: entry.bulletItems || [],
-        notes: entry.notes || [],
-      },
-      eligibilityResult,
-    });
-
-    setGuidance(nextGuidance);
-  }, []);
-
   const applyFlowPayload = useCallback(
     (payload) => {
       if (payload?.eligibilityResult) {
         const eligibilityEntry = asEligibilityEntry(payload.eligibilityResult);
         appendMessages(eligibilityEntry);
-        applyGuidanceFromEntry(eligibilityEntry, payload.eligibilityResult);
       }
 
       if (payload?.message) {
         const assistantEntry = asAssistantEntry(payload.message);
         appendMessages(assistantEntry);
-        applyGuidanceFromEntry(assistantEntry);
       }
 
       setQuickReplies(payload?.quickReplies || []);
@@ -157,7 +125,7 @@ export default function WidgetApp({ apiBase }) {
         setPendingInputType(null);
       }
     },
-    [appendMessages, applyGuidanceFromEntry]
+    [appendMessages]
   );
 
   const advanceFlow = useCallback(
@@ -315,16 +283,6 @@ export default function WidgetApp({ apiBase }) {
           return prev;
         });
 
-        if (finalText?.trim()) {
-          applyGuidanceFromEntry({
-            title: parsedFinal.title,
-            body: parsedFinal.body,
-            bulletItems: parsedFinal.bulletItems,
-            notes: parsedFinal.notes,
-            rawText: finalText,
-          });
-        }
-
         setQuickReplies([
           { id: 'start_over', label: 'Run Eligibility Check' },
           { id: 'talk_human', label: 'Request Attorney Follow-Up' },
@@ -336,7 +294,7 @@ export default function WidgetApp({ apiBase }) {
         setIsLoading(false);
       }
     },
-    [apiBase, appendMessages, applyGuidanceFromEntry, removeMessageById, sessionId]
+    [apiBase, appendMessages, removeMessageById, sessionId]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -383,7 +341,6 @@ export default function WidgetApp({ apiBase }) {
           'Your request has been submitted. A member of our legal team will follow up within one business day.'
         );
         appendMessages(assistantEntry);
-        applyGuidanceFromEntry(assistantEntry);
         setQuickReplies([{ id: 'start_over', label: 'Check Another Situation' }]);
         trackEvent('lead_submitted');
       } catch (err) {
@@ -393,7 +350,7 @@ export default function WidgetApp({ apiBase }) {
         setIsLoading(false);
       }
     },
-    [apiBase, appendMessages, applyGuidanceFromEntry, removeMessageById, sessionId, trackEvent]
+    [apiBase, appendMessages, removeMessageById, sessionId, trackEvent]
   );
 
   return (
@@ -410,42 +367,38 @@ export default function WidgetApp({ apiBase }) {
 
       {isOpen && (
         <section className="fixed inset-0 z-[99999] bg-[rgba(9,19,37,0.35)] p-3 sm:p-5 lg:p-6">
-          <div className="mx-auto flex h-full max-w-[1200px] flex-col overflow-hidden rounded border border-legal-border bg-legal-cream shadow-legal">
+          <div className="mx-auto flex h-full max-w-[980px] flex-col overflow-hidden rounded border border-legal-border bg-legal-cream shadow-legal">
             <HeaderBar onClose={() => setIsOpen(false)} />
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.7fr)_minmax(310px,1fr)]">
-              <div className="flex min-h-0 flex-col border-r border-legal-border">
-                <div ref={conversationRef} className="el-conversation-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                  <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-4">
-                    {messages.map((entry) => {
-                      if (entry.type === 'loading') return <SkeletonCard key={entry.id} />;
-                      if (entry.type === 'user') return <UserCard key={entry.id} entry={entry} />;
-                      if (entry.type === 'eligibility') return <EligibilityCard key={entry.id} entry={entry} />;
-                      return <AssistantCard key={entry.id} entry={entry} />;
-                    })}
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div ref={conversationRef} className="el-conversation-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+                <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-4">
+                  {messages.map((entry) => {
+                    if (entry.type === 'loading') return <SkeletonCard key={entry.id} />;
+                    if (entry.type === 'user') return <UserCard key={entry.id} entry={entry} />;
+                    if (entry.type === 'eligibility') return <EligibilityCard key={entry.id} entry={entry} />;
+                    return <AssistantCard key={entry.id} entry={entry} />;
+                  })}
 
-                    <QuickReplies items={quickReplies} onSelect={handleQuickReply} />
+                  <QuickReplies items={quickReplies} onSelect={handleQuickReply} />
 
-                    {formMode === 'contact' && (
-                      <ContactCaptureCard onSubmit={handleContactSubmit} disabled={isLoading} />
-                    )}
+                  {formMode === 'contact' && (
+                    <ContactCaptureCard onSubmit={handleContactSubmit} disabled={isLoading} />
+                  )}
 
-                    {formMode === 'lead' && (
-                      <LeadCaptureCard onSubmit={handleLeadSubmit} disabled={isLoading} />
-                    )}
-                  </div>
+                  {formMode === 'lead' && (
+                    <LeadCaptureCard onSubmit={handleLeadSubmit} disabled={isLoading} />
+                  )}
                 </div>
-
-                <InputComposer
-                  value={inputValue}
-                  onChange={setInputValue}
-                  onSubmit={handleSubmit}
-                  disabled={isLoading}
-                  placeholder={placeholder}
-                />
               </div>
 
-              <GuidancePanel guidance={guidance} />
+              <InputComposer
+                value={inputValue}
+                onChange={setInputValue}
+                onSubmit={handleSubmit}
+                disabled={isLoading}
+                placeholder={placeholder}
+              />
             </div>
           </div>
         </section>
