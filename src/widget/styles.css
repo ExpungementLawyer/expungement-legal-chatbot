@@ -13,6 +13,13 @@
   font-family: 'Source Sans 3', system-ui, sans-serif;
 }
 
+#el-legal-widget-root .el-widget-overlay {
+  overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
+  touch-action: manipulation;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+
 #el-legal-widget-root button,
 #el-legal-widget-root textarea,
 #el-legal-widget-root input {
@@ -20,6 +27,9 @@
 }
 
 #el-legal-widget-root .el-conversation-scroll {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   scrollbar-width: thin;
   scrollbar-color: #c2b79f #f4efe4;
 }
@@ -46,4 +56,18 @@
   background: linear-gradient(90deg, #ece6d9 25%, #f8f5ee 50%, #ece6d9 75%);
   background-size: 220% 100%;
   animation: skeleton-shift 1.25s linear infinite;
+}
+
+html.el-widget-body-lock,
+body.el-widget-body-lock {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  height: 100%;
+}
+
+body.el-widget-body-lock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
 }

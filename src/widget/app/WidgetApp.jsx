@@ -8,6 +8,8 @@ import SkeletonCard from './components/SkeletonCard';
 import { AssistantCard, EligibilityCard, UserCard } from './components/ConversationCard';
 import { ContactCaptureCard, LeadCaptureCard } from './components/ContactCards';
 
+const SCROLL_EPSILON = 1;
+
 function createId(prefix = 'msg') {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36)}`;
 }
@@ -59,6 +61,94 @@ function asEligibilityEntry(result) {
   };
 }
 
+function isScrollableElement(node) {
+  if (!(node instanceof HTMLElement)) return false;
+  const style = window.getComputedStyle(node);
+  const overflowY = style.overflowY;
+  if (!/(auto|scroll|overlay)/.test(overflowY)) return false;
+  return node.scrollHeight > node.clientHeight + SCROLL_EPSILON;
+}
+
+function findNearestScrollable(node, boundaryNode) {
+  let current = node instanceof Element ? node : null;
+  while (current && current !== boundaryNode) {
+    if (isScrollableElement(current)) return current;
+    current = current.parentElement;
+  }
+  return isScrollableElement(boundaryNode) ? boundaryNode : null;
+}
+
+function isIOSDevice() {
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  return /iP(hone|ad|od)/.test(platform) || (/Mac/.test(platform) && 'ontouchend' in document) || /iP(hone|ad|od)/.test(ua);
+}
+
+function lockDocumentScroll() {
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  const html = document.documentElement;
+  const body = document.body;
+
+  html.classList.add('el-widget-body-lock');
+  body.classList.add('el-widget-body-lock');
+  body.style.top = `-${scrollY}px`;
+
+  return () => {
+    html.classList.remove('el-widget-body-lock');
+    body.classList.remove('el-widget-body-lock');
+    body.style.top = '';
+    window.scrollTo(0, scrollY);
+  };
+}
+
+function installTouchBoundaryGuard(overlayEl, fallbackScrollEl) {
+  const state = {
+    startY: 0,
+    activeScroller: fallbackScrollEl,
+  };
+
+  const getScroller = (eventTarget) =>
+    findNearestScrollable(eventTarget, overlayEl) || state.activeScroller || fallbackScrollEl;
+
+  const onTouchStart = (event) => {
+    if (event.touches.length !== 1) return;
+    state.startY = event.touches[0].clientY;
+    state.activeScroller = getScroller(event.target);
+  };
+
+  const onTouchMove = (event) => {
+    if (event.touches.length !== 1) return;
+
+    const scroller = getScroller(event.target);
+    if (!scroller) {
+      event.preventDefault();
+      return;
+    }
+
+    if (scroller.scrollHeight <= scroller.clientHeight + SCROLL_EPSILON) {
+      event.preventDefault();
+      return;
+    }
+
+    const currentY = event.touches[0].clientY;
+    const deltaY = currentY - state.startY;
+    const atTop = scroller.scrollTop <= SCROLL_EPSILON;
+    const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - SCROLL_EPSILON;
+
+    if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+      event.preventDefault();
+    }
+  };
+
+  overlayEl.addEventListener('touchstart', onTouchStart, { passive: true });
+  overlayEl.addEventListener('touchmove', onTouchMove, { passive: false });
+
+  return () => {
+    overlayEl.removeEventListener('touchstart', onTouchStart);
+    overlayEl.removeEventListener('touchmove', onTouchMove);
+  };
+}
+
 export default function WidgetApp({ apiBase }) {
   const sessionId = useMemo(() => getSessionId(), []);
 
@@ -72,6 +162,7 @@ export default function WidgetApp({ apiBase }) {
 
   const initializedRef = useRef(false);
   const conversationRef = useRef(null);
+  const overlayRef = useRef(null);
 
   const placeholder =
     pendingInputType === 'name'
@@ -182,6 +273,48 @@ export default function WidgetApp({ apiBase }) {
       initializeFlow();
     }
   }, [isOpen, initializeFlow]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    return lockDocumentScroll();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const updateViewportHeight = () => {
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty('--el-widget-vh', `${Math.round(viewportHeight)}px`);
+    };
+
+    updateViewportHeight();
+
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    window.visualViewport?.addEventListener('resize', updateViewportHeight);
+    window.visualViewport?.addEventListener('scroll', updateViewportHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+      window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
+      document.documentElement.style.removeProperty('--el-widget-vh');
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    if (!('ontouchstart' in window)) return undefined;
+
+    const overlayEl = overlayRef.current;
+    const fallbackScrollEl = conversationRef.current;
+    if (!overlayEl || !fallbackScrollEl) return undefined;
+
+    const supportsOverscrollContain = typeof CSS !== 'undefined' && CSS.supports?.('overscroll-behavior-y', 'contain');
+
+    if (supportsOverscrollContain && !isIOSDevice()) return undefined;
+    return installTouchBoundaryGuard(overlayEl, fallbackScrollEl);
+  }, [isOpen]);
 
   useEffect(() => {
     const panel = conversationRef.current;
@@ -378,7 +511,11 @@ export default function WidgetApp({ apiBase }) {
       )}
 
       {isOpen && (
-        <section className="fixed inset-0 z-[99999] bg-[rgba(9,19,37,0.35)] p-3 sm:p-5 lg:p-6">
+        <section
+          ref={overlayRef}
+          className="el-widget-overlay fixed left-0 top-0 z-[99999] w-full bg-[rgba(9,19,37,0.35)] p-3 sm:p-5 lg:p-6"
+          style={{ height: 'var(--el-widget-vh, 100dvh)' }}
+        >
           <div className="mx-auto flex h-full max-w-[980px] flex-col overflow-hidden rounded border border-legal-border bg-legal-cream shadow-legal">
             <HeaderBar onClose={() => setIsOpen(false)} />
 
