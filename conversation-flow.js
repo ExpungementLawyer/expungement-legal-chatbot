@@ -576,6 +576,24 @@ function processInput(session, input) {
     const step = STEPS[session.currentStep];
     if (!step) return { step: STEPS.FREE_CHAT, session };
 
+    // Guardrail: if a stale/invalid quick-reply arrives for the current step,
+    // keep the user on this step instead of silently branching elsewhere.
+    if (Array.isArray(step.quickReplies) && step.quickReplies.length > 0) {
+        const validReplyIds = new Set(step.quickReplies.map((q) => q.id));
+        if (typeof input !== 'string' || !validReplyIds.has(input)) {
+            const sameStep = getCurrentStep(session);
+            sameStep.message =
+                `Please choose one of the options below so I can continue your eligibility check.\n\n${sameStep.message}`;
+
+            return {
+                step: sameStep,
+                session,
+                needsEligibility: false,
+                eligibilityInput: null,
+            };
+        }
+    }
+
     session.events.push({
         step: session.currentStep,
         input: step.inputType === 'contact_form' || step.inputType === 'lead_form' ? '[contact]' : input,

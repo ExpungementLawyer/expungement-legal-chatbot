@@ -169,6 +169,8 @@ export default function WidgetApp({ apiBase }) {
   const composerInputRef = useRef(null);
   const lockedScrollYRef = useRef(0);
   const focusStabilizeFrameRef = useRef(0);
+  const flowInFlightRef = useRef(false);
+  const flowRequestSeqRef = useRef(0);
 
   const placeholder =
     pendingInputType === 'name'
@@ -253,21 +255,31 @@ export default function WidgetApp({ apiBase }) {
 
   const advanceFlow = useCallback(
     async (input) => {
+      if (flowInFlightRef.current) return;
+      flowInFlightRef.current = true;
+      const requestSeq = ++flowRequestSeqRef.current;
+
       setIsLoading(true);
       const loadingId = createId('loading');
       appendMessages({ id: loadingId, type: 'loading' });
 
       try {
         const payload = await postJson(`${apiBase}/api/flow/advance`, { sessionId, input });
+        if (requestSeq !== flowRequestSeqRef.current) return;
         removeMessageById(loadingId);
         applyFlowPayload(payload);
       } catch (err) {
-        removeMessageById(loadingId);
-        appendMessages(
-          asAssistantEntry(err.message || 'We could not process that request. Please try again.')
-        );
+        if (requestSeq === flowRequestSeqRef.current) {
+          removeMessageById(loadingId);
+          appendMessages(
+            asAssistantEntry(err.message || 'We could not process that request. Please try again.')
+          );
+        }
       } finally {
-        setIsLoading(false);
+        if (requestSeq === flowRequestSeqRef.current) {
+          setIsLoading(false);
+          flowInFlightRef.current = false;
+        }
       }
     },
     [apiBase, appendMessages, applyFlowPayload, removeMessageById, sessionId]
@@ -422,6 +434,7 @@ export default function WidgetApp({ apiBase }) {
 
   const handleQuickReply = useCallback(
     (reply) => {
+      if (flowInFlightRef.current || isLoading) return;
       setQuickReplies([]);
       appendMessages(asUserEntry(reply.label));
       trackEvent('quick_reply_selected', { id: reply.id });
@@ -433,7 +446,7 @@ export default function WidgetApp({ apiBase }) {
 
       advanceFlow(reply.id);
     },
-    [advanceFlow, appendMessages, trackEvent]
+    [advanceFlow, appendMessages, isLoading, trackEvent]
   );
 
   const handleStreamChat = useCallback(
@@ -626,7 +639,7 @@ export default function WidgetApp({ apiBase }) {
                     return <AssistantCard key={entry.id} entry={entry} />;
                   })}
 
-                  <QuickReplies items={quickReplies} onSelect={handleQuickReply} />
+                  <QuickReplies items={quickReplies} onSelect={handleQuickReply} disabled={isLoading} />
 
                   {formMode === 'contact' && (
                     <ContactCaptureCard onSubmit={handleContactSubmit} disabled={isLoading} />
