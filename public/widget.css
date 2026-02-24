@@ -199,10 +199,10 @@
 .el-messages {
   flex: 1;
   min-height: 0;
-  padding: 16px 5% 8px;
+  padding: 20px 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   background-color: var(--wa-bg-chat);
@@ -222,12 +222,12 @@
    Message Bubbles
    ------------------------------------------------------------------------ */
 .el-msg {
-  max-width: 85%;
+  max-width: 78%;
   width: fit-content;
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-bottom: 6px;
+  margin-top: 14px;
 }
 
 .el-msg-bot {
@@ -238,12 +238,20 @@
   align-self: flex-end;
 }
 
+.el-msg:first-child {
+  margin-top: 0;
+}
+
+.el-msg.el-group-continuation {
+  margin-top: 4px;
+}
+
 .el-msg-bubble {
   position: relative;
-  border-radius: 7.5px;
-  padding: 6px 7px 8px 9px;
-  font-size: 14.2px;
-  line-height: 19px;
+  border-radius: 16px;
+  padding: 9px 12px 10px;
+  font-size: 14.5px;
+  line-height: 1.42;
   color: var(--wa-text-main);
   word-wrap: break-word;
   box-shadow: var(--el-shadow-bubble);
@@ -251,71 +259,48 @@
 
 .el-msg-bot .el-msg-bubble {
   background: var(--wa-bg-white);
-  border-top-left-radius: 0;
+  border: 1px solid #e6ebf2;
 }
 
 .el-msg-user .el-msg-bubble {
   background: var(--wa-green-light);
-  border-top-right-radius: 0;
+  border: 1px solid #cceec8;
 }
 
-/* Chat bubble tails using pseudo-elements */
-.el-msg-bot .el-msg-bubble::before {
+/* Chat bubble tails only at group starts */
+.el-msg:not(.el-group-continuation).el-msg-bot .el-msg-bubble::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: -8px;
+  top: 10px;
+  left: -7px;
   width: 8px;
-  height: 13px;
+  height: 11px;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 8 13' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23ffffff' d='M1.533 3.568L8 12.193V1H2.812C1.042 1 .474 2.156 1.533 3.568z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 50% 50%;
-  filter: drop-shadow(-1px 1px 0.5px rgba(11, 20, 26, 0.13));
+  filter: drop-shadow(-1px 1px 0 rgba(11, 20, 26, 0.11));
 }
 
-.el-msg-user .el-msg-bubble::before {
+.el-msg:not(.el-group-continuation).el-msg-user .el-msg-bubble::before {
   content: '';
   position: absolute;
-  top: 0;
-  right: -8px;
+  top: 10px;
+  right: -7px;
   width: 8px;
-  height: 13px;
+  height: 11px;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 8 13' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23d9fdd3' d='M5.188 1H0v11.193l6.467-8.625C7.526 2.156 6.958 1 5.188 1z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 50% 50%;
-  filter: drop-shadow(1px 1px 0.5px rgba(11, 20, 26, 0.13));
-}
-
-/* Ensure subsequent messages from same sender don't have tails */
-.el-msg.el-msg-bot+.el-msg.el-msg-bot .el-msg-bubble,
-.el-msg.el-msg-user+.el-msg.el-msg-user .el-msg-bubble {
-  border-radius: 7.5px;
-}
-
-.el-msg.el-msg-bot+.el-msg.el-msg-bot .el-msg-bubble::before,
-.el-msg.el-msg-user+.el-msg.el-msg-user .el-msg-bubble::before {
-  display: none;
-}
-
-.el-msg.el-msg-bot+.el-msg.el-msg-bot,
-.el-msg.el-msg-user+.el-msg.el-msg-user {
-  margin-top: -4px;
-  /* Move closer to previous message */
-}
-
-/* Time formatting inside bubble */
-.el-msg-content-wrapper {
-  display: block;
+  filter: drop-shadow(1px 1px 0 rgba(11, 20, 26, 0.11));
 }
 
 .el-msg-bubble p {
-  display: inline;
-  margin-bottom: 0;
+  display: block;
+  margin: 0 0 8px;
 }
 
-.el-msg-bubble p:not(:last-child) {
-  display: block;
-  margin-bottom: 6px;
+.el-msg-bubble p:last-child {
+  margin-bottom: 0;
 }
 
 .el-msg-bubble strong {
@@ -323,48 +308,52 @@
 }
 
 .el-msg-time {
-  float: right;
-  margin-top: 6px;
-  margin-left: 8px;
+  margin-top: 3px;
+  padding: 0 4px;
   font-size: 11px;
+  font-weight: 500;
   color: var(--wa-text-meta);
-  line-height: 15px;
-  position: relative;
-  top: 3px;
+  line-height: 1;
 }
 
-/* Add WhatsApp double tick for sent messages */
+.el-msg-user .el-msg-time {
+  text-align: right;
+}
+
+.el-msg.el-group-continuation .el-msg-time {
+  display: none;
+}
+
+/* Add WhatsApp-like double tick for outbound messages */
 .el-msg-user .el-msg-time::after {
   content: '\\2713\\2713';
-  /* double check */
-  margin-left: 4px;
-  font-size: 12px;
-  color: #53bdeb;
-  /* Blue ticks for read receipt */
+  margin-left: 3px;
+  font-size: 11px;
+  color: #5aa9e9;
   letter-spacing: -2px;
 }
 
-/* Typing indicator */
 .el-typing {
+  position: relative;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 12px 14px;
-  margin-bottom: 6px;
-  border-radius: 7.5px;
-  border-top-left-radius: 0;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
   background: var(--wa-bg-white);
+  border: 1px solid #e6ebf2;
   box-shadow: var(--el-shadow-bubble);
 }
 
 .el-typing::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: -8px;
+  top: 10px;
+  left: -7px;
   width: 8px;
-  height: 13px;
+  height: 11px;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 8 13' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23ffffff' d='M1.533 3.568L8 12.193V1H2.812C1.042 1 .474 2.156 1.533 3.568z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
 }
@@ -656,6 +645,12 @@
 /* ------------------------------------------------------------------------
    Responsive
    ------------------------------------------------------------------------ */
+@media (max-width: 860px) {
+  .el-msg {
+    max-width: 82%;
+  }
+}
+
 @media (max-width: 560px) {
   #el-chatbot-widget {
     right: 0;
@@ -669,5 +664,13 @@
   #el-chatbot-launcher {
     right: 16px;
     bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .el-messages {
+    padding: 16px 12px 12px;
+  }
+
+  .el-msg {
+    max-width: 86%;
   }
 }

@@ -9,7 +9,7 @@
     'use strict';
 
     // ─── Config ────────────────────────────────────────────────────────────
-    const WIDGET_VERSION = '2026-02-24.3';
+    const WIDGET_VERSION = '2026-02-24.4';
 
     function resolveScriptTag() {
         if (document.currentScript) return document.currentScript;
@@ -186,8 +186,22 @@
         const div = document.createElement('div');
         div.className = `el-msg el-msg-${sender}`;
         if (id) div.id = id;
+        const prev = msgs.lastElementChild;
+        const isContinuation =
+            prev &&
+            prev.classList &&
+            prev.classList.contains('el-msg') &&
+            prev.classList.contains(`el-msg-${sender}`);
+
+        if (isContinuation) {
+            prev.classList.remove('el-group-end');
+            div.classList.add('el-group-continuation');
+        }
+
+        div.classList.add('el-group-end');
         div.innerHTML = `
-      <div class="el-msg-bubble">${formatMessage(text)}<span class="el-msg-time">${formatMessageTime()}</span></div>
+      <div class="el-msg-bubble">${formatMessage(text)}</div>
+      <div class="el-msg-time">${formatMessageTime()}</div>
     `;
         msgs.appendChild(div);
         scrollToBottom();
@@ -531,7 +545,7 @@
                             fullText += delta;
                             const bubbleEl = msgEl.querySelector('.el-msg-bubble');
                             if (bubbleEl) {
-                                bubbleEl.innerHTML = `${formatMessage(fullText)}<span class="el-msg-time">${formatMessageTime()}</span>`;
+                                bubbleEl.innerHTML = formatMessage(fullText);
                             }
                             scrollToBottom();
                         }
