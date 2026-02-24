@@ -3,7 +3,7 @@ services:
     name: expungement-legal-chatbot
     env: node
     plan: free
-    buildCommand: npm ci
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
