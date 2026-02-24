@@ -76,32 +76,42 @@ app.use(express.json({ limit: '16kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Rate limiter (per IP, in-memory)
+// Rate limiter (per IP + route bucket, in-memory)
 // ═══════════════════════════════════════════════════════════════════════════
 const rateLimitMap = new Map();
 const RATE_WINDOW = 60_000;
-const RATE_MAX = 20;
 
-function rateLimiter(req, res, next) {
-    const ip = req.ip || req.connection.remoteAddress;
-    const now = Date.now();
-    let entry = rateLimitMap.get(ip);
-    if (!entry || now - entry.start > RATE_WINDOW) {
-        entry = { start: now, count: 1 };
-        rateLimitMap.set(ip, entry);
-        return next();
-    }
-    entry.count++;
-    if (entry.count > RATE_MAX) {
-        return res.status(429).json({ error: 'Too many requests. Please slow down.' });
-    }
-    next();
+function makeRateLimiter({ bucket, max, windowMs = RATE_WINDOW }) {
+    return (req, res, next) => {
+        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        const now = Date.now();
+        const key = `${bucket}:${ip}`;
+
+        let entry = rateLimitMap.get(key);
+        if (!entry || now - entry.start > windowMs) {
+            entry = { start: now, count: 1 };
+            rateLimitMap.set(key, entry);
+            return next();
+        }
+
+        entry.count += 1;
+        if (entry.count > max) {
+            return res.status(429).json({ error: 'Too many requests. Please slow down.' });
+        }
+
+        next();
+    };
 }
+
+const flowRateLimiter = makeRateLimiter({ bucket: 'flow', max: 180 });
+const chatRateLimiter = makeRateLimiter({ bucket: 'chat', max: 30 });
+const leadRateLimiter = makeRateLimiter({ bucket: 'lead', max: 60 });
+const eventRateLimiter = makeRateLimiter({ bucket: 'event', max: 600 });
 
 setInterval(() => {
     const now = Date.now();
-    for (const [ip, e] of rateLimitMap) {
-        if (now - e.start > RATE_WINDOW * 2) rateLimitMap.delete(ip);
+    for (const [key, e] of rateLimitMap) {
+        if (now - e.start > RATE_WINDOW * 2) rateLimitMap.delete(key);
     }
 }, RATE_WINDOW);
 
@@ -185,7 +195,7 @@ setInterval(() => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ─── Flow: get current state ───────────────────────────────────────────────
-app.post('/api/flow/state', rateLimiter, (req, res) => {
+app.post('/api/flow/state', flowRateLimiter, (req, res) => {
     const { sessionId } = req.body;
     if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
@@ -201,7 +211,7 @@ app.post('/api/flow/state', rateLimiter, (req, res) => {
 });
 
 // ─── Flow: advance state ──────────────────────────────────────────────────
-app.post('/api/flow/advance', rateLimiter, (req, res) => {
+app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
     const { sessionId, input } = req.body;
     if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
@@ -257,7 +267,7 @@ app.post('/api/flow/advance', rateLimiter, (req, res) => {
 });
 
 // ─── Chat: AI-powered free-form chat ──────────────────────────────────────
-app.post('/api/chat', rateLimiter, async (req, res) => {
+app.post('/api/chat', chatRateLimiter, async (req, res) => {
     const { message, sessionId } = req.body;
 
     if (!message || typeof message !== 'string' || !message.trim()) {
@@ -350,7 +360,7 @@ app.post('/api/chat', rateLimiter, async (req, res) => {
 });
 
 // ─── Lead capture ─────────────────────────────────────────────────────────
-app.post('/api/lead', rateLimiter, async (req, res) => {
+app.post('/api/lead', leadRateLimiter, async (req, res) => {
     const { sessionId, name, email, phone } = req.body;
 
     if (!name && !email && !phone) {
@@ -379,7 +389,7 @@ app.post('/api/lead', rateLimiter, async (req, res) => {
 });
 
 // ─── Analytics event ──────────────────────────────────────────────────────
-app.post('/api/event', rateLimiter, (req, res) => {
+app.post('/api/event', eventRateLimiter, (req, res) => {
     const { sessionId, event, data } = req.body;
     if (!event) return res.status(400).json({ error: 'event required' });
     recordEvent({ sessionId: sessionId || 'unknown', event, data });
