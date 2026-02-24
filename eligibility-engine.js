@@ -152,11 +152,11 @@ function evaluateEligibility(input) {
             status: 'not_texas',
             confidence: 'high',
             reason:
-                `${name}, this automated eligibility model is configured only for Texas record-clearing statutes. ` +
-                'Cases in other states or federal court require a different legal framework.',
+                `${name}, we only handle Texas state arrests and Texas state court charges. ` +
+                'We do not handle federal cases or cases from other states.',
             nextSteps:
-                '1. Review out-of-state resources for your jurisdiction.\n' +
-                '2. If any part of your history occurred in Texas, request a Texas-specific legal review.',
+                '1. If any part of your history is in Texas state court, request a Texas-specific review.\n' +
+                '2. For federal or out-of-state matters, use local counsel in that jurisdiction.',
         });
     }
 

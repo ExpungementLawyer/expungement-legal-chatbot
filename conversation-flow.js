@@ -125,7 +125,7 @@ const STEPS = {
             { id: 'federal', label: 'Federal Court' },
         ],
         inputType: 'jurisdiction',
-        next: () => 'ASK_LIFETIME_BAN',
+        next: (reply) => (reply === 'tx_yes' ? 'ASK_LIFETIME_BAN' : 'ELIGIBILITY_RESULT'),
     },
 
     ASK_LIFETIME_BAN: {
@@ -460,7 +460,7 @@ const STEPS = {
     OUT_OF_STATE_RESOURCES: {
         id: 'OUT_OF_STATE_RESOURCES',
         message:
-            `This tool is optimized for Texas statutes only.\n\n👉 [Review Out-of-State Options](${OUT_OF_STATE_GUIDE_URL})\n\nIf part of your history is in Texas, we can still review that segment directly.`,
+            `We only handle Texas state arrests and Texas state court charges. We do not handle federal cases or cases from other states.\n\n👉 [Review Out-of-State Options](${OUT_OF_STATE_GUIDE_URL})\n\nIf any part of your record is in Texas state court, we can review that Texas portion.`,
         quickReplies: [
             { id: 'schedule_consult', label: 'Discuss Texas-Specific Portion' },
             { id: 'start_over', label: 'Restart Check' },
