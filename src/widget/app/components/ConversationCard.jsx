@@ -1,5 +1,31 @@
 import React from 'react';
 
+function TextWithLinks({ text }) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = String(text || '').split(urlRegex);
+
+  return (
+    <>
+      {parts.map((part, idx) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={idx}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-legal-gold font-semibold underline hover:text-[#d6c08f] transition-colors"
+            >
+              {part}
+            </a>
+          );
+        }
+        return <span key={idx}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 function ParagraphBlock({ text, className = '' }) {
   const paragraphs = String(text || '')
     .split(/\n{2,}/)
@@ -10,7 +36,7 @@ function ParagraphBlock({ text, className = '' }) {
     <div className={className}>
       {paragraphs.map((p, idx) => (
         <p key={idx} className={idx > 0 ? 'mt-3' : ''}>
-          {p}
+          <TextWithLinks text={p} />
         </p>
       ))}
     </div>
@@ -30,7 +56,9 @@ function SectionList({ title, items, tone = 'default' }) {
       <h5 className="font-display text-sm font-bold tracking-tight">{title}</h5>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-[15px] leading-relaxed">
         {items.map((item, idx) => (
-          <li key={idx}>{item}</li>
+          <li key={idx}>
+            <TextWithLinks text={item} />
+          </li>
         ))}
       </ul>
     </section>
