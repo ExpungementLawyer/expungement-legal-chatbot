@@ -422,11 +422,7 @@ export default function WidgetApp({ apiBase }) {
     return installTouchBoundaryGuard(overlayEl, fallbackScrollEl);
   }, [isOpen]);
 
-  useEffect(() => {
-    const panel = conversationRef.current;
-    if (!panel) return;
-    panel.scrollTo({ top: panel.scrollHeight, behavior: 'auto' });
-  }, [messages, quickReplies, formMode]);
+  // No auto-scroll — let the user scroll down on their own.
 
   useEffect(() => {
     return () => {
@@ -637,10 +633,14 @@ export default function WidgetApp({ apiBase }) {
               <div ref={conversationRef} className="el-conversation-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
                 <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-4">
                   {messages.map((entry) => {
-                    if (entry.type === 'loading') return <SkeletonCard key={entry.id} />;
-                    if (entry.type === 'user') return <UserCard key={entry.id} entry={entry} />;
-                    if (entry.type === 'eligibility') return <EligibilityCard key={entry.id} entry={entry} />;
-                    return <AssistantCard key={entry.id} entry={entry} />;
+                    return (
+                      <div key={entry.id} id={`msg-${entry.id}`}>
+                        {entry.type === 'loading' && <SkeletonCard />}
+                        {entry.type === 'user' && <UserCard entry={entry} />}
+                        {entry.type === 'eligibility' && <EligibilityCard entry={entry} />}
+                        {entry.type === 'assistant' && <AssistantCard entry={entry} />}
+                      </div>
+                    );
                   })}
 
                   <QuickReplies items={quickReplies} onSelect={handleQuickReply} disabled={isLoading} />

@@ -151,7 +151,6 @@ function contradictionDetected(input) {
 }
 
 function evaluateEligibility(input) {
-    const name = input?.firstName || 'there';
 
     if (input?.jurisdiction !== 'TX') {
         return makeResult({
@@ -159,7 +158,7 @@ function evaluateEligibility(input) {
             status: 'not_texas',
             confidence: 'high',
             reason:
-                `${name}, we only handle Texas state arrests and Texas state court charges. ` +
+                `We only handle Texas state court charges. ` +
                 'We do not handle federal cases or cases from other states.',
             nextSteps:
                 '1. If any part of your history is in Texas state court, request a Texas-specific review.\n' +
@@ -173,7 +172,7 @@ function evaluateEligibility(input) {
             status: 'disqualified_lifetime_bar',
             confidence: 'high',
             reason:
-                `${name}, based on your answer, standard expunction and nondisclosure pathways appear blocked by Texas lifetime statutory bars for specific offense categories.`,
+                `Based on your answer, standard expunction and nondisclosure pathways appear blocked by Texas lifetime statutory bars for specific offense categories.`,
             nextSteps:
                 '1. Request an attorney consultation for advanced remedies.\n' +
                 '2. Discuss whether pardon or post-conviction relief pathways may apply to your facts.',
@@ -186,7 +185,7 @@ function evaluateEligibility(input) {
             status: 'needs_discovery',
             confidence: 'high',
             reason:
-                `${name}, your case outcome is unclear, so we should not guess. Texas eligibility depends on the exact final disposition shown on your official record.`,
+                `Your case outcome is unclear, so we should not guess. Texas eligibility depends on the exact final disposition shown on your official record.`,
             nextSteps:
                 '1. Start the $49 Record Discovery & Strategy Session.\n' +
                 '2. We pull your official DPS history and provide a verified legal pathway review.',
@@ -199,7 +198,7 @@ function evaluateEligibility(input) {
             status: 'needs_human_review',
             confidence: 'high',
             reason:
-                `${name}, one or more answers conflict with typical Texas statutory outcomes. This usually means the case paperwork classification is different than expected.`,
+                `One or more answers conflict with typical Texas statutory outcomes. This usually means the case paperwork classification is different than expected.`,
             nextSteps:
                 '1. Route this file to priority human legal review.\n' +
                 '2. Confirm the exact disposition from county/DPS records before filing.',
@@ -217,7 +216,7 @@ function evaluateEligibility(input) {
             status: 'needs_human_review',
             confidence: 'high',
             reason:
-                `${name}, because multiple charges were tied to one arrest and at least one ended in conviction/jail, the criminal-episode rule may block direct expunction for related counts.`,
+                `Because multiple charges were tied to one arrest and at least one ended in conviction/jail, the criminal-episode rule may block direct expunction for related counts.`,
             nextSteps:
                 '1. Attorney review is required to isolate any remaining sealing pathway.\n' +
                 '2. We can map charge-by-charge options from your complete docket history.',
@@ -232,7 +231,7 @@ function evaluateEligibility(input) {
                 pathway: 'expunction',
                 confidence: 'high',
                 reason:
-                    `Strong result, ${name}. A not-guilty acquittal is generally on the expunction pathway in Texas, meaning record destruction rather than simple sealing.`,
+                    `Strong result. A not-guilty acquittal is generally on the expunction pathway in Texas, meaning record destruction rather than simple sealing.`,
                 nextSteps:
                     '1. Begin filing now to lock in removal from public-record channels.\n' +
                     '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
@@ -249,7 +248,7 @@ function evaluateEligibility(input) {
                 status: 'needs_human_review',
                 confidence: 'medium',
                 reason:
-                    `${name}, we need the arrest date to calculate statute-based waiting periods for unfiled arrests.`,
+                    `we need the arrest date to calculate statute-based waiting periods for unfiled arrests.`,
                 nextSteps: '1. Confirm the arrest month/year from your records.\n2. Re-run this check or request legal review.',
             });
         }
@@ -272,7 +271,7 @@ function evaluateEligibility(input) {
                     pathway: 'expunction',
                     confidence: 'high',
                     reason:
-                        `${name}, your unfiled-arrest timeline appears to satisfy Texas wait-period rules for expunction filing.`,
+                        `Your unfiled-arrest timeline appears to satisfy Texas wait-period rules for expunction filing.`,
                     nextSteps:
                         '1. We can file your expunction petition now.\n' +
                         '2. Select Standard ($1,395) or Rush ($2,000) processing.',
@@ -290,7 +289,7 @@ function evaluateEligibility(input) {
                 pathway: 'expunction',
                 confidence: 'high',
                 reason:
-                    `${name}, you are on the expunction path, but the statutory wait period has not expired yet.`,
+                    `You are on the expunction path, but the statutory wait period has not expired yet.`,
                 nextSteps:
                     `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
                     `2. Join the priority waitlist and we will notify you when filing opens (about ${etaYears} year(s) remaining).`,
@@ -308,7 +307,7 @@ function evaluateEligibility(input) {
                 status: 'needs_human_review',
                 confidence: 'medium',
                 reason:
-                    `${name}, we need the arrest date to calculate statute-of-limitation timing for dismissed charges.`,
+                    `we need the arrest date to calculate statute-of-limitation timing for dismissed charges.`,
                 nextSteps: '1. Confirm arrest month/year from your records.\n2. Re-run this check or request legal review.',
             });
         }
@@ -333,7 +332,7 @@ function evaluateEligibility(input) {
                     pathway: 'expunction',
                     confidence: 'medium',
                     reason:
-                        `${name}, your dismissed-case timeline appears to satisfy current Texas statute timing for expunction filing.`,
+                        `Your dismissed-case timeline appears to satisfy current Texas statute timing for expunction filing.`,
                     nextSteps:
                         '1. Begin your expunction petition now.\n' +
                         '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
@@ -351,7 +350,7 @@ function evaluateEligibility(input) {
                 pathway: 'expunction',
                 confidence: 'medium',
                 reason:
-                    `${name}, this dismissed charge appears to remain inside the current waiting window under Texas statute timing rules.`,
+                    `This dismissed charge appears to remain inside the current waiting window under Texas statute timing rules.`,
                 nextSteps:
                     `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
                     `2. Join priority waitlist for automatic filing-window alerts (about ${etaYears} year(s) remaining).`,
@@ -368,7 +367,7 @@ function evaluateEligibility(input) {
                 status: 'needs_human_review',
                 confidence: 'high',
                 reason:
-                    `${name}, the offense category selected is typically restricted for deferred-adjudication sealing pathways. We should verify the exact disposition before moving forward.`,
+                    `the offense category selected is typically restricted for deferred-adjudication sealing pathways. We should verify the exact disposition before moving forward.`,
                 nextSteps:
                     '1. Route to priority legal review.\n' +
                     '2. Confirm charge coding and final order details from official records.',
@@ -382,7 +381,7 @@ function evaluateEligibility(input) {
                 pathway: 'nondisclosure',
                 confidence: 'high',
                 reason:
-                    `${name}, Texas clean-period rules can block nondisclosure when new arrests/convictions occur during the waiting window.`,
+                    `Texas clean-period rules can block nondisclosure when new arrests/convictions occur during the waiting window.`,
                 nextSteps:
                     '1. Request attorney analysis for any remaining legal options.\n' +
                     '2. We can review whether alternate post-conviction remedies may apply.',
@@ -396,7 +395,7 @@ function evaluateEligibility(input) {
                 status: 'needs_human_review',
                 confidence: 'medium',
                 reason:
-                    `${name}, we need your deferred discharge date to calculate nondisclosure waiting periods.`,
+                    `we need your deferred discharge date to calculate nondisclosure waiting periods.`,
                 nextSteps:
                     '1. Confirm discharge month/year from court records.\n' +
                     '2. Re-run this check or request legal review.',
@@ -423,7 +422,7 @@ function evaluateEligibility(input) {
                     pathway: 'nondisclosure',
                     confidence: 'high',
                     reason:
-                        `${name}, your deferred-adjudication timeline appears to satisfy Texas nondisclosure waiting requirements.`,
+                        `Your deferred-adjudication timeline appears to satisfy Texas nondisclosure waiting requirements.`,
                     nextSteps:
                         '1. Start your nondisclosure filing now.\n' +
                         '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
@@ -441,7 +440,7 @@ function evaluateEligibility(input) {
                 pathway: 'nondisclosure',
                 confidence: 'high',
                 reason:
-                    `${name}, you may qualify for nondisclosure, but the required post-discharge waiting window has not fully matured.`,
+                    `You may qualify for nondisclosure, but the required post-discharge waiting window has not fully matured.`,
                 nextSteps:
                     `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
                     `2. Join priority waitlist for automatic alerting (about ${etaYears} year(s) remaining).`,
@@ -458,7 +457,7 @@ function evaluateEligibility(input) {
                 status: 'disqualified_felony_conviction',
                 confidence: 'high',
                 reason:
-                    `${name}, Texas generally does not allow nondisclosure for final felony convictions under standard pathways.`,
+                    `Texas generally does not allow nondisclosure for final felony convictions under standard pathways.`,
                 nextSteps:
                     '1. Request attorney consultation for advanced remedies (pardon/habeas analysis).\n' +
                     '2. Review whether any separate non-felony records remain clearable.',
@@ -472,7 +471,7 @@ function evaluateEligibility(input) {
                 pathway: 'nondisclosure',
                 confidence: 'high',
                 reason:
-                    `${name}, first-time misdemeanor conviction sealing in Texas is narrow. Multiple prior convictions/probations can block the standard pathway.`,
+                    `First-time misdemeanor conviction sealing in Texas is narrow. Multiple prior convictions/probations can block the standard pathway.`,
                 nextSteps:
                     '1. Request legal review for any alternative pathways.\n' +
                     '2. We can analyze whether any charge-specific relief remains available.',
@@ -486,7 +485,7 @@ function evaluateEligibility(input) {
                 status: 'needs_human_review',
                 confidence: 'medium',
                 reason:
-                    `${name}, we need sentence completion date details to calculate the misdemeanor conviction waiting period.`,
+                    `we need sentence completion date details to calculate the misdemeanor conviction waiting period.`,
                 nextSteps:
                     '1. Confirm completion month/year.\n2. Re-run this check or request legal review.',
             });
@@ -503,7 +502,7 @@ function evaluateEligibility(input) {
                     pathway: 'nondisclosure',
                     confidence: 'medium',
                     reason:
-                        `${name}, your first-time misdemeanor conviction timeline appears to satisfy the standard Texas nondisclosure waiting period.`,
+                        `Your first-time misdemeanor conviction timeline appears to satisfy the standard Texas nondisclosure waiting period.`,
                     nextSteps:
                         '1. Start your nondisclosure filing now.\n' +
                         '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
@@ -521,7 +520,7 @@ function evaluateEligibility(input) {
                 pathway: 'nondisclosure',
                 confidence: 'medium',
                 reason:
-                    `${name}, you appear to be on a nondisclosure path, but the post-sentence waiting period has not fully elapsed.`,
+                    `You appear to be on a nondisclosure path, but the post-sentence waiting period has not fully elapsed.`,
                 nextSteps:
                     `1. Estimated eligibility date: ${formatDate(gate.eligibleOnDate)}.\n` +
                     `2. Join priority waitlist for a filing-window alert (about ${etaYears} year(s) remaining).`,
@@ -536,7 +535,7 @@ function evaluateEligibility(input) {
         status: 'needs_human_review',
         confidence: 'medium',
         reason:
-            `${name}, this case pattern needs direct legal review to avoid a misclassification.`,
+            `This case pattern needs direct legal review to avoid a misclassification.`,
         nextSteps: '1. Request priority callback.\n2. We will verify your records and map the correct path.',
     });
 }

@@ -1,11 +1,8 @@
 export function getSessionId() {
-  const key = 'el_legal_dashboard_session';
-  let id = sessionStorage.getItem(key);
-  if (!id) {
-    id = `ses_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-    sessionStorage.setItem(key, id);
+  if (!window.__el_session_id) {
+    window.__el_session_id = `ses_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   }
-  return id;
+  return window.__el_session_id;
 }
 
 export function formatTime(ts = Date.now()) {
