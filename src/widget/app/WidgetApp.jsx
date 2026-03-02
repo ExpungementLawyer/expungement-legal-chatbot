@@ -7,6 +7,7 @@ import QuickReplies from './components/QuickReplies';
 import SkeletonCard from './components/SkeletonCard';
 import { AssistantCard, EligibilityCard, UserCard } from './components/ConversationCard';
 import { ContactCaptureCard, LeadCaptureCard } from './components/ContactCards';
+import ZohoFormCard from './components/ZohoFormCard';
 
 const SCROLL_EPSILON = 1;
 const DOUBLE_FRAME_DELAY = 2;
@@ -183,7 +184,7 @@ export default function WidgetApp({ apiBase }) {
             ? 'Sentence completion date (YYYY or MM/YYYY)...'
             : pendingInputType === 'offense'
               ? 'Describe your charge(s)...'
-      : 'Describe your situation...';
+              : 'Describe your situation...';
   const isSingleLineInput =
     pendingInputType === 'name' ||
     pendingInputType === 'arrest_date' ||
@@ -192,8 +193,8 @@ export default function WidgetApp({ apiBase }) {
 
   const composerInputMode =
     pendingInputType === 'arrest_date' ||
-    pendingInputType === 'deferred_discharge_date' ||
-    pendingInputType === 'conviction_sentence_date'
+      pendingInputType === 'deferred_discharge_date' ||
+      pendingInputType === 'conviction_sentence_date'
       ? 'numeric'
       : 'text';
 
@@ -235,6 +236,9 @@ export default function WidgetApp({ apiBase }) {
         setPendingInputType(null);
       } else if (payload?.inputType === 'lead_form') {
         setFormMode('lead');
+        setPendingInputType(null);
+      } else if (payload?.inputType === 'zoho_form') {
+        setFormMode('zoho');
         setPendingInputType(null);
       } else if (
         payload?.inputType === 'name' ||
@@ -508,15 +512,15 @@ export default function WidgetApp({ apiBase }) {
           if (latest?.id === loadingId) {
             const fallback = finalText?.trim()
               ? {
-                  id: createId('asst'),
-                  type: 'assistant',
-                  title: parsedFinal.title,
-                  body: parsedFinal.body,
-                  bulletItems: parsedFinal.bulletItems,
-                  notes: parsedFinal.notes,
-                  rawText: finalText,
-                  timestamp: formatTime(),
-                }
+                id: createId('asst'),
+                type: 'assistant',
+                title: parsedFinal.title,
+                body: parsedFinal.body,
+                bulletItems: parsedFinal.bulletItems,
+                notes: parsedFinal.notes,
+                rawText: finalText,
+                timestamp: formatTime(),
+              }
               : asAssistantEntry('No response was generated. Please try again.');
 
             return prev.filter((entry) => entry.id !== loadingId).concat(fallback);
@@ -647,6 +651,10 @@ export default function WidgetApp({ apiBase }) {
 
                   {formMode === 'lead' && (
                     <LeadCaptureCard onSubmit={handleLeadSubmit} disabled={isLoading} />
+                  )}
+
+                  {formMode === 'zoho' && (
+                    <ZohoFormCard />
                   )}
                 </div>
               </div>

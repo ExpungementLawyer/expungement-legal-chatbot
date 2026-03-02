@@ -140,26 +140,10 @@ const STEPS = {
         next: (_reply, session) => {
             if (session.collectedData.jurisdiction !== 'TX') return 'ELIGIBILITY_RESULT';
             if (session.collectedData.lifetimeBar === true) return 'ELIGIBILITY_RESULT';
-            return 'ASK_NAME';
+            return 'ASK_OFFENSE_LEVEL';
         },
     },
 
-    ASK_NAME: {
-        id: 'ASK_NAME',
-        message: 'Great. What is your first name?',
-        quickReplies: null,
-        inputType: 'name',
-        next: () => 'ASK_CONTACT',
-    },
-
-    ASK_CONTACT: {
-        id: 'ASK_CONTACT',
-        message:
-            "Before we run the legal matrix, share your best email and mobile number so we can save your progress if the session disconnects.\n\n🔒 Your data is encrypted and never sold.",
-        quickReplies: null,
-        inputType: 'contact_form',
-        next: () => 'ASK_OFFENSE_LEVEL',
-    },
 
     ASK_OFFENSE_LEVEL: {
         id: 'ASK_OFFENSE_LEVEL',
@@ -557,33 +541,10 @@ function getResultQuickReplies(result) {
     switch (result.status) {
         case 'eligible_expunction':
         case 'eligible_nondisclosure':
-            return [
-                { id: 'retain_standard', label: 'Start Standard — $1,395' },
-                { id: 'retain_rush', label: 'Start Rush — $2,000' },
-                { id: 'payment_plan', label: 'See Payment Plan Options' },
-                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
-                { id: 'schedule_consult', label: 'Speak With Legal Team' },
-            ];
-        case 'waitlist':
-            return [
-                { id: 'join_waitlist', label: 'Join Priority Waitlist' },
-                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
-                { id: 'schedule_consult', label: 'Request Legal Review' },
-                { id: 'ask_questions', label: 'Ask a Question' },
-            ];
-        case 'needs_discovery':
-            return [
-                { id: 'discovery_49', label: 'Start Record Discovery — $49' },
-                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
-                { id: 'schedule_consult', label: 'Speak With Legal Team' },
-                { id: 'ask_questions', label: 'Ask a Question' },
-            ];
         case 'needs_human_review':
-            return [
-                { id: 'schedule_priority_call', label: 'Request Priority Callback' },
-                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
-                { id: 'ask_questions', label: 'Ask a Question' },
-            ];
+        case 'needs_discovery':
+            return [];
+        case 'waitlist':
         case 'not_texas':
             return [
                 { id: 'schedule_consult', label: 'Discuss Texas-Specific Portion' },

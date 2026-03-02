@@ -6,7 +6,6 @@ const fs = require('fs');
 
 const { evaluateEligibility, buildEligibilityContext } = require('./eligibility-engine');
 const { createSession, getCurrentStep, processInput, getResultQuickReplies } = require('./conversation-flow');
-const { recordLead, recordEvent, ensureHeaders } = require('./sheets-api');
 const { streamChat } = require('./aiClient');
 
 const app = express();
@@ -191,25 +190,19 @@ function getOrCreateSession(sessionId) {
     return session;
 }
 
-function persistSessionLeadSnapshot({ sessionId, session, eligibilityLabel = 'in_progress' }) {
+function trackEvent({ sessionId = 'unknown', event, data }) {
+    if (!event) return;
+    const session = sessions.get(sessionId);
     if (!session) return;
-
-    const firstName = sanitizeInput(session?.collectedData?.firstName || '');
-    const email = sanitizeInput(session?.collectedData?.email || '');
-    const phone = sanitizeInput(session?.collectedData?.phone || '');
-
-    // If we have no identifying contact payload, skip snapshot.
-    if (!firstName && !email && !phone) return;
-
-    recordLead({
-        sessionId: sessionId || 'unknown',
-        name: firstName,
-        email,
-        phone,
-        state: session?.collectedData?.jurisdiction || '',
-        offenseType: session?.collectedData?.offenseLevel || '',
-        eligibilityResult: eligibilityLabel || 'in_progress',
+    if (!Array.isArray(session.analyticsEvents)) session.analyticsEvents = [];
+    session.analyticsEvents.push({
+        event,
+        data: data || null,
+        timestamp: new Date().toISOString(),
     });
+    if (session.analyticsEvents.length > 250) {
+        session.analyticsEvents.shift();
+    }
 }
 
 // Cleanup stale sessions
@@ -249,19 +242,9 @@ app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
 
     // If contact_form input, also save as a lead early
     if (input && typeof input === 'object' && (input.email || input.phone)) {
-        persistSessionLeadSnapshot({
-            sessionId,
-            session: {
-                ...session,
-                collectedData: {
-                    ...session.collectedData,
-                    email: input.email || session.collectedData.email || '',
-                    phone: input.phone || session.collectedData.phone || '',
-                },
-            },
-            eligibilityLabel: 'in_progress',
-        });
-        recordEvent({ sessionId, event: 'contact_captured_early', data: { hasEmail: !!input.email } });
+        session.collectedData.email = input.email || session.collectedData.email || '';
+        session.collectedData.phone = input.phone || session.collectedData.phone || '';
+        trackEvent({ sessionId, event: 'contact_captured_early', data: { hasEmail: !!input.email } });
     }
 
     const { step, needsEligibility, eligibilityInput } = processInput(session, input);
@@ -278,7 +261,11 @@ app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
         // Set status-specific quick replies
         quickReplies = getResultQuickReplies(eligibilityResult);
 
-        recordEvent({
+        if (eligibilityResult.bucket === 'eligible' || eligibilityResult.bucket === 'needs_review') {
+            step.inputType = 'zoho_form';
+        }
+
+        trackEvent({
             sessionId,
             event: 'eligibility_check',
             data: {
@@ -288,29 +275,16 @@ app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
                 status: eligibilityResult.status,
             },
         });
-
-        // Write an updated lead snapshot with eligibility status for CRM tracking.
-        persistSessionLeadSnapshot({
-            sessionId,
-            session,
-            eligibilityLabel: eligibilityResult.status,
-        });
     }
 
     if (typeof input === 'string' && CONVERSION_INTENTS.has(input)) {
-        recordEvent({
+        trackEvent({
             sessionId,
             event: 'conversion_intent',
             data: {
                 intent: input,
                 status: session.status || '',
             },
-        });
-
-        persistSessionLeadSnapshot({
-            sessionId,
-            session,
-            eligibilityLabel: `intent_${input}`,
         });
     }
 
@@ -385,7 +359,7 @@ app.post('/api/chat', chatRateLimiter, async (req, res) => {
 
         // Track analytics
         if (sessionId) {
-            recordEvent({ sessionId, event: 'chat_message', data: { length: clean.length } });
+            trackEvent({ sessionId, event: 'chat_message', data: { length: clean.length } });
         }
 
         // Stream SSE to client
@@ -425,21 +399,18 @@ app.post('/api/lead', leadRateLimiter, async (req, res) => {
     }
 
     const session = sessionId ? sessions.get(sessionId) : null;
-    const eligResult = session?.eligibilityResult;
-
-    await recordLead({
-        sessionId: sessionId || 'unknown',
-        name: sanitizeInput(name || ''),
-        email: sanitizeInput(email || ''),
-        phone: sanitizeInput(phone || ''),
-        state: session?.collectedData?.jurisdiction || '',
-        offenseType: session?.collectedData?.offenseLevel || '',
-        eligibilityResult: eligResult?.status || '',
-    });
+    if (session) {
+        session.lead = {
+            name: sanitizeInput(name || ''),
+            email: sanitizeInput(email || ''),
+            phone: sanitizeInput(phone || ''),
+            timestamp: new Date().toISOString(),
+        };
+    }
 
     // Track analytics
     if (sessionId) {
-        recordEvent({ sessionId, event: 'lead_captured', data: { hasEmail: !!email, hasPhone: !!phone } });
+        trackEvent({ sessionId, event: 'lead_captured', data: { hasEmail: !!email, hasPhone: !!phone } });
     }
 
     res.json({ success: true, message: 'Thank you! Our team will be in touch.' });
@@ -449,21 +420,15 @@ app.post('/api/lead', leadRateLimiter, async (req, res) => {
 app.post('/api/event', eventRateLimiter, (req, res) => {
     const { sessionId, event, data } = req.body;
     if (!event) return res.status(400).json({ error: 'event required' });
-    recordEvent({ sessionId: sessionId || 'unknown', event, data });
+    trackEvent({ sessionId: sessionId || 'unknown', event, data });
     res.json({ ok: true });
 });
 
 // ─── Health check ─────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
-    const sheetsConfigured = Boolean(
-        process.env.GOOGLE_SHEETS_SPREADSHEET_ID &&
-        (process.env.GOOGLE_CREDENTIALS_JSON || process.env.GOOGLE_CREDENTIALS_PATH)
-    );
-
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        sheetsConfigured,
         nodeEnv: process.env.NODE_ENV || 'development',
     });
 });
@@ -471,7 +436,7 @@ app.get('/api/health', (_req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // Start
 // ═══════════════════════════════════════════════════════════════════════════
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║  Expungement.Legal Chatbot                                ║
@@ -482,6 +447,4 @@ app.listen(PORT, async () => {
 ╚═══════════════════════════════════════════════════════════╝
   `);
 
-    // Initialize Google Sheets (non-blocking)
-    await ensureHeaders().catch(() => { });
 });
