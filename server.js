@@ -321,6 +321,7 @@ app.post('/api/flow/advance', flowRateLimiter, async (req, res) => {
 
     let eligibilityResult = null;
     let quickReplies = step.quickReplies;
+    let inputType = step.inputType || null;
 
     if (needsEligibility && eligibilityInput) {
         if (eligibilityInput.caseOutcome === 'dismissed' && eligibilityInput.dismissedCategory && typeof eligibilityInput.dismissedCategory === 'string') {
@@ -340,7 +341,7 @@ app.post('/api/flow/advance', flowRateLimiter, async (req, res) => {
         quickReplies = getResultQuickReplies(eligibilityResult);
 
         if (eligibilityResult.bucket === 'eligible' || eligibilityResult.bucket === 'needs_review') {
-            step.inputType = 'zoho_form';
+            inputType = 'zoho_form';
         }
 
         trackEvent({
@@ -370,7 +371,7 @@ app.post('/api/flow/advance', flowRateLimiter, async (req, res) => {
         step: step.id,
         message: step.message,
         quickReplies,
-        inputType: step.inputType || null,
+        inputType,
         eligibilityResult,
     });
 });

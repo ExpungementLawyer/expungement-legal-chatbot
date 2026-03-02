@@ -634,7 +634,7 @@ function processInput(session, input) {
             }
             break;
         }
-        case 'dismissed_category':
+        case 'dismissed_text_input':
             session.collectedData.dismissedCategory = input || 'not_sure';
             break;
         case 'deferred_discharge_date': {

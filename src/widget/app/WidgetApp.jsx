@@ -245,7 +245,8 @@ export default function WidgetApp({ apiBase }) {
         payload?.inputType === 'offense' ||
         payload?.inputType === 'arrest_date' ||
         payload?.inputType === 'deferred_discharge_date' ||
-        payload?.inputType === 'conviction_sentence_date'
+        payload?.inputType === 'conviction_sentence_date' ||
+        payload?.inputType === 'dismissed_text_input'
       ) {
         setFormMode(null);
         setPendingInputType(payload.inputType);
