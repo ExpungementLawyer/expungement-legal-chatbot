@@ -11,6 +11,7 @@ const rules = require('./eligibility-rules.json');
 
 const DISCLAIMER =
     'This automated assessment provides general information and not legal advice. Final eligibility depends on full court records and attorney review.';
+const ELIGIBILITY_CALENDAR_URL = 'https://calendar.app.google/R87vnTfKxKVHPtAo8';
 
 const TX = rules.texas;
 
@@ -82,6 +83,12 @@ function makeResult({
         .map((line) => line.trim())
         .filter(Boolean)
         .join('\n');
+    const shouldAppendCalendarLink =
+        status === 'eligible_expunction' || status === 'eligible_nondisclosure' || bucket === 'needs_review';
+    const nextStepsWithCalendar =
+        shouldAppendCalendarLink && !normalizedSteps.includes(ELIGIBILITY_CALENDAR_URL)
+            ? `${normalizedSteps}\n3. Book a legal review call: ${ELIGIBILITY_CALENDAR_URL}`.trim()
+            : normalizedSteps;
 
     return {
         bucket,
@@ -91,7 +98,7 @@ function makeResult({
             bucket === 'eligible' ? 'likely' : status === 'waitlist' ? 'not_yet' : bucket === 'needs_review' ? 'needs_review' : 'blocked',
         confidence,
         reason,
-        nextSteps: normalizedSteps,
+        nextSteps: nextStepsWithCalendar,
         disclaimer: DISCLAIMER,
         eligibleOnDate: formatDate(eligibleOnDate),
     };

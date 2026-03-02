@@ -615,9 +615,9 @@ export default function WidgetApp({ apiBase }) {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 left-5 z-[99998] rounded border border-legal-gold bg-legal-navy px-4 py-3 text-sm font-bold uppercase tracking-wide text-legal-cream shadow-legal transition hover:bg-legal-navyDeep"
+          className="fixed bottom-5 left-5 z-[99998] rounded border border-legal-gold bg-legal-navy px-4 py-3 text-sm font-bold uppercase tracking-wide text-[#39ff14] shadow-legal transition hover:bg-legal-navyDeep"
         >
-          Open Legal Assistant
+          Expunge Bot
         </button>
       )}
 

@@ -89,7 +89,7 @@ const STEPS = {
     GREETING: {
         id: 'GREETING',
         message:
-            "A criminal record should not be a life sentence. Recent Texas law updates have expanded record-clearing pathways. Let's run your automated eligibility check now.\n\nNote: This tool reviews public-record eligibility only. It is general information, not legal advice. Please do not share details of undiscovered crimes.",
+            "A criminal record should not be a life sentence. Recent Texas law updates have expanded record-clearing pathways. Let's run your automated eligibility check now.\n\nNote: This tool reviews public-record eligibility only. It is general information, not legal advice.",
         quickReplies: [
             { id: 'start_check', label: 'Start Eligibility Check' },
             { id: 'learn_more', label: 'Learn How This Works' },
