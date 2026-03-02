@@ -367,9 +367,12 @@ app.post('/api/flow/advance', flowRateLimiter, async (req, res) => {
         });
     }
 
+    // Suppress the deterministic state machine text bubble if an eligibility insight card has been explicitly generated
+    const finalMessage = eligibilityResult ? null : step.message;
+
     res.json({
         step: step.id,
-        message: step.message,
+        message: finalMessage,
         quickReplies,
         inputType,
         eligibilityResult,

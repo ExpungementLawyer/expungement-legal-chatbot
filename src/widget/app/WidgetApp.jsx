@@ -58,6 +58,7 @@ function asEligibilityEntry(result) {
     body: result?.reason || 'Eligibility review generated.',
     bulletItems: nextSteps,
     notes,
+    isEligible: result?.eligible === 'likely' || result?.eligible === 'needs_review',
     rawText: `${result?.reason || ''}\n${result?.nextSteps || ''}`,
     timestamp: formatTime(),
   };

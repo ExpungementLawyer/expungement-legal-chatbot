@@ -92,10 +92,20 @@ export function AssistantCard({ entry }) {
 }
 
 export function EligibilityCard({ entry }) {
+  const TitleContent = entry.isEligible ? (
+    <h4 className="font-display text-[20px] font-black leading-tight text-green-600 uppercase tracking-wide">
+      ELIGIBLE
+    </h4>
+  ) : (
+    <h4 className="font-display text-[20px] font-bold leading-tight text-legal-navy">
+      Eligibility Insight
+    </h4>
+  );
+
   return (
     <article className="el-card-animate w-full rounded border border-legal-border bg-legal-card px-4 py-4 shadow-panel">
       <div className="flex items-start justify-between gap-3">
-        <h4 className="font-display text-[20px] font-bold leading-tight text-legal-navy">Eligibility Insight</h4>
+        {TitleContent}
         <span className="whitespace-nowrap text-xs font-semibold text-legal-muted">{entry.timestamp}</span>
       </div>
 
