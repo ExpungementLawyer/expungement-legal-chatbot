@@ -240,6 +240,23 @@ function evaluateEligibility(input) {
         );
     }
 
+    if (input.caseOutcome === 'pretrial_diversion') {
+        return appendConservativeAssumption(
+            makeResult({
+                bucket: 'eligible',
+                status: 'eligible_expunction',
+                pathway: 'expunction',
+                confidence: 'high',
+                reason:
+                    `Under Texas law, successful completion of an authorized pretrial diversion program generally bypasses the standard statute of limitations waiting period, allowing for immediate expunction eligibility.`,
+                nextSteps:
+                    '1. Begin filing now to lock in removal from public records.\n' +
+                    '2. Choose Standard ($1,395) or Rush ($2,000) processing.',
+            }),
+            input
+        );
+    }
+
     if (input.caseOutcome === 'unfiled') {
         const arrestDate = toDateFromYearMonth(input.arrestDate);
         if (!arrestDate) {

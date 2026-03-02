@@ -189,6 +189,7 @@ const STEPS = {
             { id: 'dismissed', label: 'Filed, Then Dismissed' },
             { id: 'unfiled', label: 'Arrested, Charges Never Filed' },
             { id: 'acquitted', label: 'Found Not Guilty (Acquitted)' },
+            { id: 'pretrial_diversion', label: 'Pre-Trial Diversion Completed' },
             { id: 'deferred', label: 'Deferred Adjudication Completed' },
             { id: 'convicted', label: 'Convicted' },
             { id: 'unsure', label: "I'm Not Sure" },
