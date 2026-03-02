@@ -143,9 +143,79 @@ const BANNED_PHRASES = [
     /you will (?:definitely |certainly )?(?:be eligible|qualify|get|receive)/i,
     /guaranteed/i,
     /100%|100 percent/i,
-    /i can confirm (?:you|your)/i,
     /we guarantee/i,
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LLM Charge Categorizer
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function categorizeChargeLLM(chargeText, offenseLevel) {
+    if (!chargeText) return 'standard';
+
+    let kbText = '';
+    try {
+        const kbPath = path.join(__dirname, 'knowledge-base.md');
+        if (fs.existsSync(kbPath)) {
+            kbText = fs.readFileSync(kbPath, 'utf8');
+        }
+    } catch (e) {
+        console.error('Failed to load knowledge-base.md for categorization', e);
+    }
+
+    const payload = {
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
+        max_tokens: 128,
+        system: `You are an expert Texas criminal law classification engine.
+Your single goal is to read the exact criminal charge string provided by the user, cross-reference it with the Texas Chapter 12 Statute of Limitations rules in the provided Knowledge Base, and output exactly ONE of the following precise JSON string IDs representing the matching limitation tier.
+
+DO NOT output anything other than the exact string ID. 
+
+Rules:
+If it's a Misdemeanor:
+- return "misdemeanorFamilyViolence" if it's family violence/domestic assault (3 years)
+- return "misdemeanor" for all other misdemeanors (2 years)
+
+If it's a Felony:
+- return "felonyDeedTheft" if it's Real Property Theft/Fraud under PC 31.23 or 32.60 (10 years)
+- return "felonyFraud" if it's Chapter 32 Fraud, Money Laundering, or Medicaid Fraud (7 years)
+- return "felonyStandard" for standard felonies like Robbery, Kidnapping, Burglary (5 years)
+- return "felonyCatchAll" for drug possession or non-aggravated offenses lacking enhancements (3 years)
+- return "noLimitation" for Murder, Sexual Assault, Trafficking, child abuse, fatal hit and run (999 years)
+
+Context from Knowledge Base:
+${kbText}`,
+        messages: [
+            { role: 'user', content: `Offense Level Provided: ${offenseLevel}\nCharge String: "${chargeText}"\n\nReturn EXACTLY the matching string ID with no other text, quotes, or punctuation.` }
+        ]
+    };
+
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            console.error('Categorize LLM API Error:', await response.text());
+            return 'standard';
+        }
+
+        const data = await response.json();
+        const text = data.content?.[0]?.text?.trim() || 'standard';
+        console.log(`[LLM Categorizer] Mapped "${chargeText}" -> ${text}`);
+        return text;
+    } catch (err) {
+        console.error('Categorize LLM Error:', err);
+        return 'standard';
+    }
+}
+
 
 function addSafetyDisclaimer(text) {
     // If the response doesn't already include a disclaimer, append one
@@ -234,7 +304,7 @@ app.post('/api/flow/state', flowRateLimiter, (req, res) => {
 });
 
 // ─── Flow: advance state ──────────────────────────────────────────────────
-app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
+app.post('/api/flow/advance', flowRateLimiter, async (req, res) => {
     const { sessionId, input } = req.body;
     if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
@@ -253,6 +323,14 @@ app.post('/api/flow/advance', flowRateLimiter, (req, res) => {
     let quickReplies = step.quickReplies;
 
     if (needsEligibility && eligibilityInput) {
+        if (eligibilityInput.caseOutcome === 'dismissed' && eligibilityInput.dismissedCategory && typeof eligibilityInput.dismissedCategory === 'string') {
+            // Re-map the free text string to structured JSON ENUM via LLM
+            eligibilityInput.dismissedCategory = await categorizeChargeLLM(
+                eligibilityInput.dismissedCategory,
+                eligibilityInput.offenseLevel
+            );
+        }
+
         eligibilityResult = evaluateEligibility(eligibilityInput);
         session.eligibilityResult = eligibilityResult;
         session.bucket = eligibilityResult.bucket;

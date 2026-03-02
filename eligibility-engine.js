@@ -315,11 +315,24 @@ function evaluateEligibility(input) {
         const level = input.offenseLevel || 'felony';
         const dismissal = TX.waitPeriods.dismissed;
 
+        if (input.dismissedCategory === 'noLimitation') {
+            return makeResult({
+                bucket: 'not_eligible',
+                status: 'disqualified_no_sol',
+                confidence: 'high',
+                reason: `Certain egregious offenses under Texas law have no statute of limitations. This arrest cannot be expunged via the timeline pathway because the state's right to prosecute never theoretically expires.`,
+                nextSteps: '1. If the charge was dismissed due to actual innocence or completing a diversion program, you may still qualify.\n2. Request a direct attorney evaluation.',
+            });
+        }
+
         let requiredYears = dismissal.misdemeanorYears;
         if (level === 'felony') {
-            if (input.dismissedCategory === 'fraud_financial') requiredYears = dismissal.felonyFraudYears;
-            else if (input.dismissedCategory === 'deed_theft') requiredYears = dismissal.felonyDeedTheftYears;
+            if (input.dismissedCategory === 'felonyFraud') requiredYears = dismissal.felonyFraudYears;
+            else if (input.dismissedCategory === 'felonyDeedTheft') requiredYears = dismissal.felonyDeedTheftYears;
+            else if (input.dismissedCategory === 'felonyCatchAll') requiredYears = dismissal.felonyCatchAllYears;
             else requiredYears = dismissal.felonyStandardYears;
+        } else {
+            if (input.dismissedCategory === 'misdemeanorFamilyViolence') requiredYears = dismissal.misdemeanorFamilyViolenceYears;
         }
 
         const gate = evaluateWaitGate({ anchorDate: arrestDate, requiredYears });

@@ -220,14 +220,9 @@ const STEPS = {
     ASK_DISMISSED_CATEGORY: {
         id: 'ASK_DISMISSED_CATEGORY',
         message:
-            'For dismissed cases, some offense categories carry longer statutes of limitation. Which best matches the dismissed charge?',
-        quickReplies: [
-            { id: 'standard', label: 'Standard Offense' },
-            { id: 'fraud_financial', label: 'Fraud / Financial Crime' },
-            { id: 'deed_theft', label: 'Deed / Document Transfer Theft' },
-            { id: 'not_sure', label: 'Not Sure' },
-        ],
-        inputType: 'dismissed_category',
+            "For dismissed cases, some offenses carry longer statutes of limitation. What was the exact charge that was dismissed?\n\nExamples: 'Assault Family Violence', 'Credit Card Abuse', 'Possession of a Controlled Substance', etc.",
+        quickReplies: null,
+        inputType: 'dismissed_text_input',
         next: () => 'ELIGIBILITY_RESULT',
     },
 

@@ -9,9 +9,12 @@
       },
       "dismissed": {
         "misdemeanorYears": 2,
+        "misdemeanorFamilyViolenceYears": 3,
+        "felonyCatchAllYears": 3,
         "felonyStandardYears": 5,
         "felonyFraudYears": 7,
-        "felonyDeedTheftYears": 10
+        "felonyDeedTheftYears": 10,
+        "noLimitationYears": 999
       },
       "deferred": {
         "felonyYears": 5,
