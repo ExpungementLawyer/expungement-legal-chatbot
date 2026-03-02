@@ -85,10 +85,9 @@ function makeResult({
         .join('\n');
     const shouldAppendCalendarLink =
         status === 'eligible_expunction' || status === 'eligible_nondisclosure' || bucket === 'needs_review';
-    const nextStepsWithCalendar =
-        shouldAppendCalendarLink && !normalizedSteps.includes(ELIGIBILITY_CALENDAR_URL)
-            ? `${normalizedSteps}\n3. Book a legal review call: ${ELIGIBILITY_CALENDAR_URL}`.trim()
-            : normalizedSteps;
+
+    // Completely remove the "Recommended Next Steps" for eligible/review cases where the Zoho form is presented.
+    const finalNextSteps = shouldAppendCalendarLink ? '' : normalizedSteps;
 
     return {
         bucket,
@@ -98,7 +97,7 @@ function makeResult({
             bucket === 'eligible' ? 'likely' : status === 'waitlist' ? 'not_yet' : bucket === 'needs_review' ? 'needs_review' : 'blocked',
         confidence,
         reason,
-        nextSteps: nextStepsWithCalendar,
+        nextSteps: finalNextSteps,
         disclaimer: DISCLAIMER,
         eligibleOnDate: formatDate(eligibleOnDate),
     };
@@ -186,9 +185,8 @@ function evaluateEligibility(input) {
             confidence: 'high',
             reason:
                 `Your case outcome is unclear, so we should not guess. Texas eligibility depends on the exact final disposition shown on your official record.`,
-            nextSteps:
-                '1. Start the $49 Record Discovery & Strategy Session.\n' +
-                '2. We pull your official DPS history and provide a verified legal pathway review.',
+            nextStep:
+                '1. Schedule a free consultation.\n',
         });
     }
 
