@@ -434,19 +434,10 @@ const STEPS = {
 
     BOOK_CONSULT: {
         id: 'BOOK_CONSULT',
-        message: (session) =>
-            `We can route this to a legal specialist for direct review. ${session.collectedData.firstName || ''} is the current contact information still best for callback?`,
-        quickReplies: [
-            { id: 'yes_correct', label: 'Yes, Contact Me There' },
-            { id: 'update_contact', label: 'Update Contact Info' },
-        ],
-        next: (reply, session) => {
-            if (reply === 'update_contact') {
-                session.returnAfterLead = 'CONSULT_CONFIRMED';
-                return 'LEAD_CAPTURE';
-            }
-            return 'CONSULT_CONFIRMED';
-        },
+        message: 'We can route this to a legal specialist for direct review. Please provide your contact information below.',
+        quickReplies: null,
+        inputType: 'lead_form',
+        next: () => 'CONSULT_CONFIRMED',
     },
 
     CONSULT_CONFIRMED: {
@@ -545,10 +536,16 @@ function getResultQuickReplies(result) {
         case 'needs_discovery':
             return [];
         case 'waitlist':
-        case 'not_texas':
             return [
-                { id: 'schedule_consult', label: 'Discuss Texas-Specific Portion' },
-                { id: 'free_consult_backup', label: 'Use Free Consultation Form' },
+                { id: 'schedule_consult', label: 'Speak With Legal Team' },
+                { id: 'ask_questions', label: 'Ask a Question' },
+            ];
+        case 'not_texas':
+        case 'disqualified_lifetime_bar':
+        case 'disqualified_intervening_offense':
+        case 'disqualified_felony_conviction':
+        case 'disqualified_repeat_history':
+            return [
                 { id: 'start_over', label: 'Restart Check' },
             ];
         default:
