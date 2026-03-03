@@ -8,7 +8,8 @@ export default function ZohoFormCard() {
           title="Do You Qualify?"
           aria-label="Do You Qualify?"
           frameBorder="0"
-          style={{ height: '600px', width: '100%', border: 'none' }}
+          scrolling="no"
+          style={{ height: '1100px', width: '100%', border: 'none' }}
           src="https://forms.zohopublic.com/wydelawgm1/form/FreeEligibilityCheck/formperma/hyOPkKRtOSipq0RElSEaeqmvPkaIP_aY50-kLBRtCFY"
         ></iframe>
       </div>

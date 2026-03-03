@@ -307,6 +307,18 @@ export default function WidgetApp({ apiBase }) {
   }, [apiBase, applyFlowPayload, appendMessages, sessionId, trackEvent]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsOpen((prev) => {
+        if (!prev && !initializedRef.current) {
+          return true;
+        }
+        return prev;
+      });
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (isOpen && !initializedRef.current) {
       initializeFlow();
     }

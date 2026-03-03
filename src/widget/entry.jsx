@@ -43,6 +43,12 @@ function ensureCss(apiBase) {
 function mountWidget() {
   if (document.getElementById('el-legal-widget-app')) return;
 
+  // Do not show bot on specific pages
+  if (window.location.pathname.includes('/assault-family-violence')) {
+    console.info(`[Expungement Widget] Disabled on this page by blocklist.`);
+    return;
+  }
+
   const scriptTag = resolveScriptTag();
   const apiBase = resolveApiBase(scriptTag);
 
